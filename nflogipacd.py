@@ -232,8 +232,9 @@ class GatherThread(threading.Thread):
 					self.asynmap))
 
 	def schedule_ping(self):
-		if self.asynmap:
-			self.nextping = self.asc.enter(self.pinginterval, 0, self.ping_counters, ())
+		if self.asynmap and self.nextping is None:
+			self.nextping = self.asc.enter(self.pinginterval, 0,
+					self.ping_counters, ())
 
 	def ping_counters(self):
 		self.nextping = None
@@ -244,6 +245,11 @@ class GatherThread(threading.Thread):
 	def run(self):
 		self.schedule_ping()
 		self.asc.run()
+
+	def ping_now(self):
+		if self.nextping is not None:
+			self.asc.cancel(self.nextping)
+		self.ping_counters()
 
 	def terminate(self):
 		if self.nextping is not None:
@@ -287,8 +293,11 @@ def main():
 
 	def handle_sigterm(signum, frame):
 		gt.terminate()
-
+	def handle_sighup(signum, frame):
+		gt.ping_now()
 	signal.signal(signal.SIGTERM, handle_sigterm)
+	signal.signal(signal.SIGHUP, handle_sighup)
+
 	wt.start()
 	try:
 		gt.run()

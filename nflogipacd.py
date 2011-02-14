@@ -12,6 +12,7 @@ import threading
 import Queue
 import configobj
 import imp
+import signal
 
 def create_counter(group, kind, exe):
 	"""
@@ -192,12 +193,17 @@ class ReportingCounter(Counter):
 		"""
 		Counter.__init__(self, group, kind, exe, map)
 		self.writefunc = writefunc
+		self.close_on_end = False
+
+	def schedule_terminate(self):
+		self.close_on_end = True
 
 	def handle_cmd_update(self, addr, value):
 		self.writefunc(self.group, addr, value)
 
 	def handle_cmd_end(self):
-		pass # ignore
+		if self.close_on_end:
+			self.close()
 
 class GatherThread(threading.Thread):
 	def __init__(self, pinginterval, exe, writefunc):
@@ -214,6 +220,7 @@ class GatherThread(threading.Thread):
 		self.asynmap = {}
 		self.asc = asynschedcore(self.asynmap)
 		self.counters = []
+		self.nextping = None
 
 	def add_counter(self, group, kind):
 		"""
@@ -226,9 +233,10 @@ class GatherThread(threading.Thread):
 
 	def schedule_ping(self):
 		if self.asynmap:
-			self.asc.enter(self.pinginterval, 0, self.ping_counters, ())
+			self.nextping = self.asc.enter(self.pinginterval, 0, self.ping_counters, ())
 
 	def ping_counters(self):
+		self.nextping = None
 		for counter in self.counters:
 			counter.request_data()
 		self.schedule_ping()
@@ -236,6 +244,15 @@ class GatherThread(threading.Thread):
 	def run(self):
 		self.schedule_ping()
 		self.asc.run()
+
+	def terminate(self):
+		if self.nextping is not None:
+			self.asc.cancel(self.nextping)
+			self.nextping = None
+
+		for counter in self.counters:
+			counter.request_data()
+			counter.schedule_terminate()
 
 class WriteThread(threading.Thread):
 	def __init__(self, writeplugin):
@@ -245,6 +262,9 @@ class WriteThread(threading.Thread):
 
 	def writefunc(self, group, addr, value):
 		self.queue.put((group, addr, value))
+
+	def terminate(self):
+		self.queue.put(None)
 
 	def run(self):
 		while True:
@@ -264,11 +284,16 @@ def main():
 		wt.writefunc)
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
+
+	def handle_sigterm(signum, frame):
+		gt.terminate()
+
+	signal.signal(signal.SIGTERM, handle_sigterm)
 	wt.start()
 	try:
 		gt.run()
-	except KeyboardInterrupt:
-		wt.queue.put(None)
+	finally:
+		wt.terminate()
 
 if __name__ == '__main__':
 	main()

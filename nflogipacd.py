@@ -215,7 +215,10 @@ class WriteThread(threading.Thread):
 
 	def run(self):
 		while True:
-			group, addr, value = self.queue.get()
+			entry = self.queue.get()
+			if entry is None:
+				break
+			group, addr, value = entry
 			self.writeplugin(group, addr, value)
 
 def main():
@@ -228,8 +231,11 @@ def main():
 		wt.writefunc)
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
-	gt.start()
-	wt.run()
+	wt.start()
+	try:
+		gt.run()
+	except KeyboardInterrupt:
+		wt.queue.put(None)
 
 if __name__ == '__main__':
 	main()

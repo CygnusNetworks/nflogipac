@@ -13,6 +13,7 @@ import Queue
 import configobj
 import imp
 import signal
+import validate
 
 def create_counter(group, kind, exe):
 	"""
@@ -280,8 +281,22 @@ class WriteThread(threading.Thread):
 			group, addr, value = entry
 			self.writeplugin(group, addr, value)
 
+config_spec = configobj.ConfigObj("""
+[main]
+plugin = string(min=1)
+interval = integer(min=1)
+exe = string(min=1)
+[groups]
+[[__many__]]
+kind = string(min=1)
+""".splitlines(), interpolation=False, list_values=False)
+
 def main():
-	config = configobj.ConfigObj(sys.argv[1])
+	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec)
+	for section_list, key, error in configobj.flatten_errors(config,
+			config.validate(validate.Validator())):
+		raise ValueError("failed to validate %s in section %s" %
+				(key, ", ".join(section_list)))
 
 	plugin = imp.load_source("__plugin__",
 			config["main"]["plugin"]).plugin(config)

@@ -14,6 +14,8 @@ import configobj
 import imp
 import signal
 import validate
+import syslog
+import traceback
 
 def create_counter(group, kind, exe):
 	"""
@@ -279,7 +281,14 @@ class WriteThread(threading.Thread):
 			if entry is None:
 				break
 			group, addr, value = entry
-			self.writeplugin(group, addr, value)
+			try:
+				self.writeplugin(group, addr, value)
+			except Exception, e:
+				syslog.syslog(syslog.LOG_ERR, "Caught %s from backend: %s" %
+						(type(e).__name__, str(e)))
+				for line in traceback.format_exc(sys.exc_info()[2]) \
+						.splitlines():
+					syslog.syslog(syslog.LOG_ERR, line)
 
 config_spec = configobj.ConfigObj("""
 [main]
@@ -312,6 +321,7 @@ def main():
 		gt.ping_now()
 	signal.signal(signal.SIGTERM, handle_sigterm)
 	signal.signal(signal.SIGHUP, handle_sighup)
+	syslog.openlog("nflogipac", syslog.LOG_PID, syslog.LOG_DAEMON)
 
 	wt.start()
 	try:

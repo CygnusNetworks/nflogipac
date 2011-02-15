@@ -67,6 +67,6 @@ class plugin:
 		for dbconf in config["databases"].values():
 			self.backends.append(backend(dbconf, config))
 
-	def __call__(self, group, addr, value):
+	def account(self, timestamp, group, addr, value):
 		for backend in self.backends:
 			backend(group, addr, value)

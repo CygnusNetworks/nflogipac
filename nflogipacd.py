@@ -76,6 +76,7 @@ class Counter(asyncore.dispatcher):
 		self.pid, counter_sock = create_counter(group, kind, exe)
 		asyncore.dispatcher.__init__(self, sock=counter_sock, map=map)
 		self.requesting_data = False
+		self.lastrequest = 0
 		self.buf = ""
 
 	def request_data(self):
@@ -86,6 +87,7 @@ class Counter(asyncore.dispatcher):
 
 	def handle_write(self):
 		if self.send("x"):
+			self.lastrequest = time.time()
 			self.requesting_data = False
 
 	def readable(self):
@@ -110,7 +112,7 @@ class Counter(asyncore.dispatcher):
 				return
 			value, = struct.unpack("!Q", content[:8])
 			addr = content[8:]
-			self.handle_cmd_update(addr, value)
+			self.handle_cmd_update(self.lastrequest, addr, value)
 		elif command == 2:
 			if content != "":
 				self.close()
@@ -119,7 +121,7 @@ class Counter(asyncore.dispatcher):
 		else:
 			self.close()
 
-	def handle_cmd_update(self, addr, value):
+	def handle_cmd_update(self, timestamp, addr, value):
 		"""
 		@type addr: str
 		@type value: int or long
@@ -134,7 +136,7 @@ class DebugCounter(Counter):
 		Counter.__init__(self, *args, **kwargs)
 		self.pending = collections.defaultdict(long)
 
-	def handle_cmd_update(self, addr, value):
+	def handle_cmd_update(self, timestamp, addr, value):
 		self.pending[addr] += value
 		print("received update for group %d addr %s value %d" %
 				(self.group, addr.encode("hex"), value))
@@ -225,8 +227,8 @@ class ReportingCounter(Counter):
 	def schedule_terminate(self):
 		self.close_on_end = True
 
-	def handle_cmd_update(self, addr, value):
-		self.writefunc(self.group, addr, value)
+	def handle_cmd_update(self, timestamp, addr, value):
+		self.writefunc(timestamp, self.group, addr, value)
 
 	def handle_cmd_end(self):
 		if self.close_on_end:
@@ -293,8 +295,8 @@ class WriteThread(threading.Thread):
 		self.queue = Queue.Queue()
 		self.writeplugin = writeplugin
 
-	def writefunc(self, group, addr, value):
-		self.queue.put((group, addr, value))
+	def writefunc(self, timestamp, group, addr, value):
+		self.queue.put((timestamp, group, addr, value))
 
 	def terminate(self):
 		self.queue.put(None)
@@ -304,9 +306,9 @@ class WriteThread(threading.Thread):
 			entry = self.queue.get()
 			if entry is None:
 				break
-			group, addr, value = entry
+			timestamp, group, addr, value = entry
 			try:
-				self.writeplugin(group, addr, value)
+				self.writeplugin.account(timestamp, group, addr, value)
 			except Exception, e:
 				syslog.syslog(syslog.LOG_ERR, "Caught %s from backend: %s" %
 						(type(e).__name__, str(e)))

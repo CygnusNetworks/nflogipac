@@ -18,6 +18,11 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/thread.hpp>
 
+#ifndef RECEIVE_BUFFER_SIZE
+/* TODO: should this be runtime configurable? */
+#define RECEIVE_BUFFER_SIZE 1024*1024
+#endif
+
 #ifdef USE_STANDARD_MAP
 #include <map>
 #else
@@ -179,8 +184,7 @@ void nflogipac::open() {
 
 	try {
 		{
-			/* FIXME: magic constant */
-			socklen_t rcvbuf=1024*1024;
+			socklen_t rcvbuf(RECEIVE_BUFFER_SIZE);
 			if(::setsockopt(this->fd, SOL_SOCKET, SO_RCVBUFFORCE,
 						&rcvbuf, sizeof(rcvbuf)) < 0)
 				throw nflogipac_error("setsockopt(..., "

@@ -1,13 +1,8 @@
 import time
 import MySQLdb
 import MySQLdb.cursors
-import time
-import socket
 import os
-
-def format_address(binaddr, family,
-		familymap=dict(ipv4=socket.AF_INET, ipv6=socket.AF_INET6)):
-	return socket.inet_ntop(familymap[family], binaddr)
+from nflogipac import AddressFormatter
 
 class backend:
 	def __init__(self, dbconf, config):
@@ -52,10 +47,7 @@ class backend:
 		self.create_current_table(group)
 		query = "INSERT INTO %s %s;" % (self.current_tables[group],
 				self.groups[group]["insert"].replace("?", "%s"))
-		parammap = dict(
-				pid=os.getpid(),
-				address=format_address(addr, self.groups[group]["addrformat"]),
-				value=value)
+		parammap = dict(pid=os.getpid(), address=addr, value=value)
 		params = list(map(parammap.__getitem__,
 			self.groups[group]["insert_params"]))
 		self.cursor.execute(query, params)
@@ -63,10 +55,11 @@ class backend:
 
 class plugin:
 	def __init__(self, config):
+		self.formatter = AddressFormatter(config)
 		self.backends = []
 		for dbconf in config["databases"].values():
 			self.backends.append(backend(dbconf, config))
 
 	def account(self, timestamp, group, addr, value):
 		for backend in self.backends:
-			backend(group, addr, value)
+			backend(group, self.formatter(group, addr), value)

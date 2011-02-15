@@ -16,6 +16,10 @@ import signal
 import validate
 import syslog
 import traceback
+import fcntl
+
+class FatalError(Exception):
+	"""Something very bad happend leading to program abort with a message."""
 
 def create_counter(group, kind, exe):
 	"""
@@ -25,19 +29,39 @@ def create_counter(group, kind, exe):
 	@rtype: (int, socket)
 	@returns: (pid, stdin_and_stdout)
 	"""
-	parentsock, childsock = socket.socketpair()
+	parentsock, childsock = socket.socketpair() # for communication
+	parentpipe, childpipe = os.pipe() # for startup
 	pid = os.fork()
 	if 0 == pid: # child
-		parentsock.close()
-		os.close(0)
-		os.close(1)
-		os.dup2(childsock.fileno(), 0)
-		os.dup2(childsock.fileno(), 1)
-		os.execv(exe, [exe, "%d" % group, kind])
+		try:
+			parentsock.close()
+			os.close(parentpipe)
+			# close signals
+			pipeflags = fcntl.fcntl(childpipe, fcntl.F_GETFD)
+			fcntl.fcntl(childpipe, fcntl.F_SETFD, pipeflags | fcntl.FD_CLOEXEC)
+			os.close(0)
+			os.close(1)
+			os.dup2(childsock.fileno(), 0)
+			os.dup2(childsock.fileno(), 1)
+			try:
+				os.execv(exe, [exe, "%d" % group, kind])
+			except OSError, err:
+				os.write(childpipe, "exec failed with OSError: %s" % str(err))
+				sys.exit(1)
+		except Exception, exc:
+			os.write(childpipe, "something in the child went wrong badly: %s" %
+					str(exc))
+			sys.exit(1)
+		os.write(childpipe, "this is unreachable code")
 		sys.exit(1)
 
 	# parent
 	childsock.close()
+	os.close(childpipe)
+	report = os.read(parentpipe, 4096)
+	os.close(parentpipe)
+	if report:
+		raise FatalError(report)
 	return pid, parentsock
 
 class Counter(asyncore.dispatcher):

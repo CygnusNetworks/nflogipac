@@ -1,0 +1,83 @@
+.TH nfnetlink_log_ctl 1 "February 15 2011"
+.SH NAME
+nfnetlink_log_ctl - a tool for managing logging backends for the NFLOG iptables target
+.SH SYNOPSIS
+.B
+nfnetlink_log_ctl
+.B help
+.br
+.B nfnetlink_log_ctl
+[ [
+.B status
+|
+.B bind
+|
+.B unbind
+|
+.B rebind
+]
+[
+.B AF_INET
+|
+.B AF_INET6
+]
+]*
+.SH DESCRIPTION
+.PP
+The Linux kernel manages has an internal interface for deciding what to do with packets that pass a NFLOG
+.BR iptables(1)
+rule.
+For each address family a set of loggers can be registered of which one can be bound to the interface.
+There are two types of loggers.
+Generic loggers such as
+.B nfnetlink_log
+work for all address families.
+Specific loggers such as
+.B ipt_LOG
+only work for one address family
+.B (AF_INET
+in this case) and are automatically bound when registered unless some other logger is already bound.
+(This behaviour can lead to unexpected effects.)
+The
+.B nfnetlink_log_ctl
+utility can be used to query or modify these bindings of
+.B nfnetlink_log
+for the address families
+.B AF_INET
+and
+.B AF_INET6.
+
+.SH COMMANDS
+All commands except
+.B help
+require an address family to be passed.
+.TP
+.B help
+prints a small online help.
+.TP
+.B status
+prints a line starting with the symbolic name of the address family and a status for the binding.
+Possible status values are unbound, bound, other and error.
+.TP
+.B bind
+tries to bind the
+.B nfnetlink_log
+logger to the specified address family.
+Note that this fails if any logger is bound for the address family already.
+.TP
+.B unbind
+causes the specified address family to be unbound regardless of whether it was bound before.
+.TP
+.B rebind
+is the combination of
+.B unbind
+followed by
+.B bind.
+This is a way to force the binding.
+.SH PROBLEMS
+Loading kernel modules such as ipt_LOG.ko can mess with the bindings.
+Some daemons such as ulogd2 also modify these bindings during startup.
+.SH SEE ALSO
+.BR iptables (1)
+.SH AUTHOR
+Helmut Grohne <h.grohne@cygnusnetworks.de>

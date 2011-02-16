@@ -43,13 +43,25 @@ class backend:
 		self.cursor.execute(query, ())
 		self.current_tables[group] = table_name
 
+	def lookup_userid(self, group, addr):
+		query = "SELECT %s;" % (self.config["main"]["userid_query"]
+				.replace("?", "%s"))
+		parammap = dict(group=group, address=addr)
+		params = self.config["main"]["userid_query_params"]
+		params = list(map(parammap.__getitem__, params))
+		self.cursor.execute(query, params)
+		rows = self.cursor.fetchall()
+		return rows[0]["userid"]
+
 	def __call__(self, group, addr, value):
 		self.create_current_table(group)
 		query = "INSERT INTO %s %s;" % (self.current_tables[group],
 				self.groups[group]["insert"].replace("?", "%s"))
 		parammap = dict(pid=os.getpid(), address=addr, value=value)
-		params = list(map(parammap.__getitem__,
-			self.groups[group]["insert_params"]))
+		params = self.groups[group]["insert_params"]
+		if "userid" in params:
+			parammap["userid"] = self.lookup_userid(group, addr)
+		params = list(map(parammap.__getitem__, params))
 		self.cursor.execute(query, params)
 		self.db.commit()
 

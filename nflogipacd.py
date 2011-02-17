@@ -123,6 +123,7 @@ class Counter(asyncore.dispatcher):
 
 	def handle_cmd_update(self, timestamp, addr, value):
 		"""
+		@type timestamp: float
 		@type addr: str
 		@type value: int or long
 		"""
@@ -149,9 +150,9 @@ class ReportingCounter(Counter):
 		"""
 		@type group: int
 		@type kind: str
-		@type writefunc: (int, str, int) -> None
-		@param writefunc: is a function taking a group, a binary IP (4 or 6)
-				address and a byte count. It must not block or fail.
+		@type writefunc: (float, int, str, int) -> None
+		@param writefunc: is a function taking a timestamp, a group, a binary
+				IP (4 or 6) address and a byte count. It must not block or fail.
 		"""
 		Counter.__init__(self, group, kind, exe, map)
 		self.writefunc = writefunc
@@ -171,9 +172,9 @@ class GatherThread(threading.Thread):
 	def __init__(self, pinginterval, exe, writefunc):
 		"""
 		@type pinginterval: int
-		@type writefunc: (int, str, int) -> None
-		@param writefunc: is a function taking a group, a binary IP (4 or 6)
-				address and a byte count. It must not block or fail.
+		@type writefunc: (float, int, str, int) -> None
+		@param writefunc: is a function taking a timestamp, a group, a binary
+				IP (4 or 6) address and a byte count. It must not block or fail.
 		"""
 		threading.Thread.__init__(self)
 		self.pinginterval = pinginterval

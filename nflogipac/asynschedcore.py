@@ -69,3 +69,57 @@ class asynschedcore(sched.scheduler):
 				asyncore.loop(self.maxloop, map=self._asynmap, count=1)
 			else:
 				break
+
+class periodic:
+	"""Set up a function for periodic invocation with a scheduler."""
+	def __init__(self, schedinst, interval, priority, function, *args,
+			**kwargs):
+		"""
+		@type schedinst: sched.scheduler
+		@type interval: int or float
+		@type priority: int or float
+		"""
+		self.schedinst = schedinst
+		self.interval = interval
+		self.priority = priority
+		self.function = function
+		self.args = args
+		self.kwargs = kwargs
+		self.event = None
+
+	def start(self):
+		"""Start the periodic now. Calling this method or schedule twice is an
+		error unless stop is called in between."""
+		self.schedule()
+		self.function(*self.args, **self.kwargs)
+
+	def schedule(self):
+		"""Schedule execution of the periodic with the specified interval.
+		Calling this method or start twice is an error unless stop is called in
+		between."""
+		if self.event is not None:
+			raise ValueError("already started or scheduled")
+		self.event = self.schedinst.enter(self.interval, self.priority,
+				self._call_wrapper, ())
+
+	def stop(self):
+		"""Stop periodic execution no matter whether it was already stopped or
+		not."""
+		if self.event is not None:
+			self.schedinst.cancel(self.event)
+			self.event = None
+
+	def call_now(self):
+		"""Call the function now. If the periodic is scheduled the next
+		invocation is rescheduled with the interval."""
+		if self.event is not None:
+			self.stop()
+			self.start()
+		else:
+			self.function(*self.args, **self.kwargs)
+
+	def _call_wrapper(self):
+		assert self.event is not None
+		self.event = None
+		self.schedule()
+		self.function(*self.args, **self.kwargs)

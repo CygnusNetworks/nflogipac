@@ -16,7 +16,7 @@ import validate
 import syslog
 import traceback
 import fcntl
-from nflogipac.asynschedcore import asynschedcore
+from nflogipac.asynschedcore import asynschedcore, periodic
 
 class FatalError(Exception):
 	"""Something very bad happend leading to program abort with a message."""
@@ -177,13 +177,12 @@ class GatherThread(threading.Thread):
 				IP (4 or 6) address and a byte count. It must not block or fail.
 		"""
 		threading.Thread.__init__(self)
-		self.pinginterval = pinginterval
 		self.exe = exe
 		self.writefunc = writefunc
 		self.asynmap = {}
 		self.asc = asynschedcore(self.asynmap)
+		self.periodic = periodic(self.asc, pinginterval, 0, self.ping_counters)
 		self.counters = []
-		self.nextping = None
 
 	def add_counter(self, group, kind):
 		"""
@@ -194,31 +193,22 @@ class GatherThread(threading.Thread):
 				ReportingCounter(group, kind, self.exe, self.writefunc,
 					self.asynmap))
 
-	def schedule_ping(self):
-		if self.asynmap and self.nextping is None:
-			self.nextping = self.asc.enter(self.pinginterval, 0,
-					self.ping_counters, ())
-
 	def ping_counters(self):
-		self.nextping = None
 		for counter in self.counters:
 			counter.request_data()
-		self.schedule_ping()
+		if not self.asynmap:
+			self.periodic.stop()
 
 	def run(self):
-		self.schedule_ping()
+		if self.asynmap:
+			self.periodic.start()
 		self.asc.run()
 
 	def ping_now(self):
-		if self.nextping is not None:
-			self.asc.cancel(self.nextping)
-		self.ping_counters()
+		self.periodic.call_now()
 
 	def terminate(self):
-		if self.nextping is not None:
-			self.asc.cancel(self.nextping)
-			self.nextping = None
-
+		self.periodic.stop()
 		for counter in self.counters:
 			counter.request_data()
 			counter.schedule_terminate()

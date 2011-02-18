@@ -234,25 +234,26 @@ class WriteThread(threading.Thread):
 		self.writeplugin = writeplugin
 
 	def writefunc(self, timestamp, group, addr, value):
-		self.queue.put((timestamp, group, addr, value))
+		self.queue.put(("account", timestamp, group, addr, value))
 
 	def terminate(self):
-		self.queue.put(None)
+		self.queue.put(("terminate",))
 
 	def run(self):
 		while True:
 			entry = self.queue.get()
-			if entry is None:
+			if entry[0] == "terminate":
 				break
-			timestamp, group, addr, value = entry
-			try:
-				self.writeplugin.account(timestamp, group, addr, value)
-			except Exception, e:
-				syslog.syslog(syslog.LOG_ERR, "Caught %s from backend: %s" %
-						(type(e).__name__, str(e)))
-				for line in traceback.format_exc(sys.exc_info()[2]) \
-						.splitlines():
-					syslog.syslog(syslog.LOG_ERR, line)
+			elif entry[0] == "account":
+				timestamp, group, addr, value = entry[1:]
+				try:
+					self.writeplugin.account(timestamp, group, addr, value)
+				except Exception, e:
+					syslog.syslog(syslog.LOG_ERR, "Caught %s from backend: %s" %
+							(type(e).__name__, str(e)))
+					for line in traceback.format_exc(sys.exc_info()[2]) \
+							.splitlines():
+						syslog.syslog(syslog.LOG_ERR, line)
 
 config_spec = configobj.ConfigObj("""
 [main]

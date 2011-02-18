@@ -33,6 +33,39 @@ class backend:
 			self.db.close()
 			self.db = None
 
+	def do_reconnect(self):
+		while True:
+			try:
+				return self.do_connect()
+			except MySQLdb.OperationalError, error:
+				if error.args[0] != 2003: # Can't connect to MySQL server on ...
+					raise # no clue what to do
+				time.sleep(1)
+				# implicit continue
+
+	def do_query(self, query, params):
+		while True:
+			try:
+				self.cursor.execute(query, params)
+				return self.cursor.fetchall()
+			except MySQLdb.OperationalError, error:
+				if error.args[0] != 2006: # MySQL server has gone away
+					raise # no clue what to do
+				self.do_reconnect()
+				# implicit continue
+
+	def do_modify(self, query, params):
+		while True:
+			try:
+				self.cursor.execute(query, params)
+				self.db.commit()
+				return
+			except MySQLdb.OperationalError, error:
+				if error.args[0] != 2006: # MySQL server has gone away
+					raise # no clue what to do
+				self.do_reconnect()
+				# implicit continue
+
 	def create_current_table(self, group):
 		table_name = "%s%s" % (self.groups[group]["table_prefix"],
 				time.strftime("%g_%m", time.gmtime()))
@@ -40,7 +73,7 @@ class backend:
 			return
 		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name,
 				self.groups[group]["create_table"])
-		self.cursor.execute(query, ())
+		self.do_modify(query, ())
 		self.current_tables[group] = table_name
 
 	def lookup_userid(self, group, addr):
@@ -49,8 +82,7 @@ class backend:
 		parammap = dict(group=group, address=addr)
 		params = self.config["main"]["userid_query_params"]
 		params = list(map(parammap.__getitem__, params))
-		self.cursor.execute(query, params)
-		rows = self.cursor.fetchall()
+		rows = self.do_query(query, params)
 		return rows[0]["userid"]
 
 	def __call__(self, group, addr, value):
@@ -62,8 +94,7 @@ class backend:
 		if "userid" in params:
 			parammap["userid"] = self.lookup_userid(group, addr)
 		params = list(map(parammap.__getitem__, params))
-		self.cursor.execute(query, params)
-		self.db.commit()
+		self.do_modify(query, params)
 
 class plugin:
 	def __init__(self, config):

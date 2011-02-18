@@ -1,0 +1,35 @@
+This document describes the protocol to interface nflogipacd.cpp.
+
+Communication works on stdin and stdout of nflogipacd.cpp. Once the program is
+started normal communication can occur without any kind of handshake.
+
+All integers are network byte order.
+
+Protocol on stdin: Each character written to stdin indicates that a snapshot of
+the current counters is to be obtained. The value of the character does not
+matter. For each character written an END (see later) message is to be expected
+on stdout.
+
+Protocol on stdout: A sequence of messages is written to stdout. The first two
+bytes of the message indicate the message length as a 16bit unsigned integer.
+The next two bytes specify a command as a 16bit unsigned integer. The minimum
+message length therefore is four bytes. A receiver should fail upon receiving
+unknown messages, because they could contain important information.
+
+Messages:
+ * INVALID (code 0): This message is invalid and must not be used.
+ * UPDATE (code 1): The message contains a 64bit unsigned integer (called count)
+   followed by an address (the remainder of the message). During the last report
+   period count many bytes where accounted to the address. The length of the
+   address is determined by the parameters given to nflogipacd.cpp at startup.
+ * END (code 2): Carries no content data. Terminates a sequence of messages. It
+   indicates that a request (character written to stdin) has been fully
+   processed.
+ * LOSS (code 3): Carries a single 16bit unsigned integer (called count). The
+   count value gives a lower bound on the number of packets lost during the last
+   report period.
+
+The response to a character written to stdin is (in any order):
+ * At most one LOSS message (optional).
+ * Any number of UPDATE message.
+It is terminated by exactly one END message.

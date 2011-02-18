@@ -118,6 +118,12 @@ class Counter(asyncore.dispatcher):
 				self.close()
 				return
 			self.handle_cmd_end()
+		elif command == 3:
+			if len(content) != 2:
+				self.close()
+				return
+			losscount, = struct.unpack("!H", content)
+			self.handle_cmd_loss(self.lastrequest, losscount)
 		else:
 			self.close()
 
@@ -131,6 +137,14 @@ class Counter(asyncore.dispatcher):
 
 	def handle_cmd_end(self):
 		raise NotImplementedError
+
+	def handle_cmd_loss(self, timestamp, count):
+		"""
+		@type timestamp: float
+		@type addr: str
+		"""
+		print "we lost %d packets" % count
+		# raise NotImplementedError # TODO: make overriding mandatory
 
 class DebugCounter(Counter):
 	def __init__(self, *args, **kwargs):

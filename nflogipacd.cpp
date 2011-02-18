@@ -11,6 +11,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <string>
 
@@ -52,10 +53,13 @@ class nflogipac_error : public std::exception {
 };
 
 /**
- * Base class for traffic counters. Invoking the methods count and writedata
- * in different threads must be safe.
+ * Base class for traffic counters. Invoking the methods count, packet_lost and
+ * writedata in different threads must be safe.
  */
 class nflogipac_counter {
+	protected:
+		boost::mutex lock;
+		unsigned int packets_lost;
 	public:
 		const size_t caplen;
 		nflogipac_counter(size_t cl) : caplen(cl) {}
@@ -64,6 +68,11 @@ class nflogipac_counter {
 		 * @param payload is a buffer of precisely caplen bytes
 		 */
 		virtual void count(const char *payload)=0;
+		/**
+		 * Report loss of packets. This can happen if the kernel fills
+		 * the receive buffer faster than we empty it.
+		 */
+		void packet_lost();
 		/**
 		 * Write current accounting data to the given ostream.
 		 * @returns whether writing was successful
@@ -90,13 +99,17 @@ class nflogipac {
 		void run();
 };
 
+void nflogipac_counter::packet_lost() {
+	boost::lock_guard<boost::mutex> lock(this->lock);
+	++this->packets_lost;
+}
+
 struct ipv4_hash : public std::unary_function<std::string, size_t> {
 	size_t operator()(const std::string &s) const;
 };
 
 class nflogipac_counter_ipv4 : public nflogipac_counter {
 	private:
-		boost::mutex lock;
 #ifdef USE_STANDARD_MAP
 		typedef std::map<std::string, uint64_t> counter_map_type;
 #else
@@ -135,7 +148,6 @@ struct ipv6_hash : public std::unary_function<std::string, size_t> {
 
 class nflogipac_counter_ipv6 : public nflogipac_counter {
 	private:
-		boost::mutex lock;
 #ifdef USE_STANDARD_MAP
 		typedef std::map<std::string, uint64_t> counter_map_type;
 #else
@@ -248,8 +260,7 @@ void nflogipac::run() {
 		if(this->receive() > 0)
 			continue;
 		if(ENOBUFS == errno) {
-			/* FIXME: let the other thread do the write */
-			std::cerr  << "underrun" << std::endl;
+			this->counter->packet_lost();
 			continue;
 		}
 		std::cerr << "recv error " << std::strerror(errno) << std::endl;
@@ -429,14 +440,26 @@ bool write_end_message(std::ostream &out) {
 	return writeuint16stream(out, msgsize) && writeuint16stream(out, 2);
 }
 
+bool write_loss_message(std::ostream &out, unsigned int value) {
+	static const unsigned int msgsize(2u + 2u + 2u),
+		     uint16max(std::numeric_limits<uint16_t>::max());
+	return writeuint16stream(out, msgsize) && writeuint16stream(out, 3u) &&
+		writeuint16stream(out, std::min(value, uint16max));
+}
+
 bool nflogipac_counter_ipv4::writedata(std::ostream &out) {
 	counter_map_type exportcounters;
+	unsigned int export_packets_lost(0);
 	{
 		boost::lock_guard<boost::mutex>
 			lg(this->lock);
 		/* Fetch and clear counters. */
 		exportcounters.swap(this->counters);
+		std::swap(export_packets_lost, this->packets_lost);
 	}
+	if(export_packets_lost > 0)
+		if(!write_loss_message(out, export_packets_lost))
+			return false;
 	for(counter_map_type::iterator i(exportcounters.begin());
 				i != exportcounters.end(); ++i)
 		if(!write_count_message(out, i->first, i->second))
@@ -446,12 +469,17 @@ bool nflogipac_counter_ipv4::writedata(std::ostream &out) {
 
 bool nflogipac_counter_ipv6::writedata(std::ostream &out) {
 	counter_map_type exportcounters;
+	unsigned int export_packets_lost(0);
 	{
 		boost::lock_guard<boost::mutex>
 			lg(this->lock);
 		/* Fetch and clear counters. */
 		exportcounters.swap(this->counters);
+		std::swap(export_packets_lost, this->packets_lost);
 	}
+	if(export_packets_lost > 0)
+		if(!write_loss_message(out, export_packets_lost))
+			return false;
 	for(counter_map_type::iterator i(exportcounters.begin());
 				i != exportcounters.end(); ++i)
 		if(!write_count_message(out, i->first, i->second))

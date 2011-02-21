@@ -8,6 +8,7 @@ GZIP=gzip
 PREFIX ?= /usr/local
 SBINDIR ?= ${PREFIX}/sbin
 MANDIR ?= ${PREFIX}/share/man
+LIBDIR ?= ${PREFIX}/lib
 
 %.o:%.c
 	${CC} ${CFLAGS} -c $< -o $@
@@ -27,7 +28,8 @@ clean:
 install:nfnetlink_log_ctl nflogipacd nfnetlink_log_ctl.1.gz
 	install -m755 -d ${DESTDIR}${SBINDIR}
 	install -m755 nfnetlink_log_ctl ${DESTDIR}${SBINDIR}/nfnetlink_log_ctl
-	install -m755 nflogipacd ${DESTDIR}${SBINDIR}/nflogipacd
+	install -m755 -d ${DESTDIR}${LIBDIR}/nflogipac
+	install -m755 nflogipacd ${DESTDIR}${LIBDIR}/nflogipac/nflogipacd
 	install -m755 -d ${DESTDIR}${MANDIR}/man1
 	install -m644 nfnetlink_log_ctl.1.gz \
 		${DESTDIR}${MANDIR}/man1/nfnetlink_log_ctl.1.gz

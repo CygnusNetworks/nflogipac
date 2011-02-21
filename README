@@ -12,7 +12,8 @@ $ make
 Installing
 ~~~~~~~~~~
 
-The Makefile honours $DESTDIR and $PREFIX.
+The Makefile honours $DESTDIR and $PREFIX. Note that $PREFIX is also used at
+build time.
 
 # make install
 

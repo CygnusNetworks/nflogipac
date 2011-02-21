@@ -1,4 +1,6 @@
 #!/usr/bin/python
+# Even though this looks like a setup.py it is only half the story. This file
+# is used by the Makefile to install the Python parts.
 
 import distutils.core
 

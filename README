@@ -4,23 +4,17 @@ Building
 Dependencies: Linux 2.6, Python 2.5 or newer, Python configobj, boost::bind,
 boost::thread, libnetfilter-log, boost::tr1 (optional)
 
-For ease of maintenance the building process involves both the Makefile and
-setup.py (it seemed too hard to incorporate one into the other).
-
 If you want to compile without boost::tr1 (causes a slight performance impact),
-you need to add -DUSE_STANDARD_MAP to CFLAGS in the Makefile.
+you need to add -DUSE_STANDARD_MAP to CXXFLAGS in the Makefile.
 
 $ make
-$ python setup.py build
 
 Installing
 ~~~~~~~~~~
 
-The Makefile honours $DESTDIR and $PREFIX. For tweaking python installation
-paths see `python setup.py install --help`.
+The Makefile honours $DESTDIR and $PREFIX.
 
 # make install
-# python setup.py install
 
 Usage
 ~~~~~

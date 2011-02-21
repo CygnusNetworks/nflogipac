@@ -274,7 +274,7 @@ def main():
 			config["main"]["plugin"]).plugin(config)
 	wt = WriteThread(plugin)
 	gt = GatherThread(int(config["main"]["interval"]), config["main"]["exe"],
-		wt.account)
+		wt)
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
 

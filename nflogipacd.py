@@ -18,14 +18,18 @@ import traceback
 import fcntl
 from nflogipac.asynschedcore import asynschedcore, periodic
 
+try:
+	from nflogipac.paths import nflogipacd as nflogipacd_path
+except ImportError: # running from source directory
+	nflogipacd_path = "./nflogipacd"
+
 class FatalError(Exception):
 	"""Something very bad happend leading to program abort with a message."""
 
-def create_counter(group, kind, exe):
+def create_counter(group, kind):
 	"""
 	@type group: int
 	@type kind: str
-	@type exe: str
 	@rtype: (int, socket)
 	@returns: (pid, stdin_and_stdout)
 	"""
@@ -44,7 +48,7 @@ def create_counter(group, kind, exe):
 			os.dup2(childsock.fileno(), 0)
 			os.dup2(childsock.fileno(), 1)
 			try:
-				os.execv(exe, [exe, "%d" % group, kind])
+				os.execv(nflogipacd_path, [nflogipacd_path, "%d" % group, kind])
 			except OSError, err:
 				os.write(childpipe, "exec failed with OSError: %s" % str(err))
 				sys.exit(1)
@@ -65,15 +69,14 @@ def create_counter(group, kind, exe):
 	return pid, parentsock
 
 class Counter(asyncore.dispatcher):
-	def __init__(self, group, kind, exe, map=None):
+	def __init__(self, group, kind, map=None):
 		"""
 		@type group: int
 		@type kind: str
-		@type exe: str
 		"""
 		self.group = group
 		self.kind = kind
-		self.pid, counter_sock = create_counter(group, kind, exe)
+		self.pid, counter_sock = create_counter(group, kind)
 		asyncore.dispatcher.__init__(self, sock=counter_sock, map=map)
 		self.requesting_data = False
 		self.lastrequest = 0
@@ -160,7 +163,7 @@ class DebugCounter(Counter):
 		print("end %r" % (self.pending,))
 
 class ReportingCounter(Counter):
-	def __init__(self, group, kind, exe, writefunc, map=None):
+	def __init__(self, group, kind, writefunc, map=None):
 		"""
 		@type group: int
 		@type kind: str
@@ -168,7 +171,7 @@ class ReportingCounter(Counter):
 		@param writefunc: is a function taking a timestamp, a group, a binary
 				IP (4 or 6) address and a byte count. It must not block or fail.
 		"""
-		Counter.__init__(self, group, kind, exe, map)
+		Counter.__init__(self, group, kind, map)
 		self.writefunc = writefunc
 		self.close_on_end = False
 
@@ -183,13 +186,12 @@ class ReportingCounter(Counter):
 			self.close()
 
 class GatherThread(threading.Thread):
-	def __init__(self, pinginterval, exe, wt):
+	def __init__(self, pinginterval, wt):
 		"""
 		@type pinginterval: int
 		@type wt: WriteThread
 		"""
 		threading.Thread.__init__(self)
-		self.exe = exe
 		self.wt = wt
 		self.asynmap = {}
 		self.asc = asynschedcore(self.asynmap)
@@ -202,8 +204,7 @@ class GatherThread(threading.Thread):
 		@type kind: str
 		"""
 		self.counters.append(
-				ReportingCounter(group, kind, self.exe, self.wt.account,
-					self.asynmap))
+				ReportingCounter(group, kind, self.wt.account, self.asynmap))
 
 	def request_data(self):
 		self.wt.start_write()
@@ -261,7 +262,6 @@ config_spec = configobj.ConfigObj("""
 [main]
 plugin = string(min=1)
 interval = integer(min=1)
-exe = string(min=1)
 [groups]
 [[__many__]]
 kind = string(min=1)
@@ -277,8 +277,7 @@ def main():
 	plugin = imp.load_source("__plugin__",
 			config["main"]["plugin"]).plugin(config)
 	wt = WriteThread(plugin)
-	gt = GatherThread(int(config["main"]["interval"]), config["main"]["exe"],
-		wt)
+	gt = GatherThread(int(config["main"]["interval"]), wt)
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
 

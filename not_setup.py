@@ -14,7 +14,6 @@ distutils.core.setup(name='nflogipac',
 	maintainer_email='debian@cygnusnetworks.de',
 	license='GNU GPLv3',
 	packages=['nflogipac'],
-	scripts=['nflogipacd.py'], # TODO: should go to sbin
 	classifiers=[
 		"Development Status :: 2 - Pre-Alpha",
 		"License :: OSI Approved :: GNU General Public License (GPL)",

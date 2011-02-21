@@ -43,6 +43,7 @@ install:nfnetlink_log_ctl nflogipacd nfnetlink_log_ctl.1.gz
 	install -m755 -d ${DESTDIR}${MANDIR}/man1
 	install -m644 nfnetlink_log_ctl.1.gz \
 		${DESTDIR}${MANDIR}/man1/nfnetlink_log_ctl.1.gz
+	install -m755 nflogipacd.py ${DESTDIR}${SBINDIR}/nflogipacd.py
 	python not_setup.py install $(if ${DESTDIR},--root=${DESTDIR}) --prefix=${PREFIX}
 
 nfnetlink_log_ctl:nfnetlink_log_ctl.o

@@ -183,16 +183,14 @@ class ReportingCounter(Counter):
 			self.close()
 
 class GatherThread(threading.Thread):
-	def __init__(self, pinginterval, exe, writefunc):
+	def __init__(self, pinginterval, exe, wt):
 		"""
 		@type pinginterval: int
-		@type writefunc: (float, int, str, int) -> None
-		@param writefunc: is a function taking a timestamp, a group, a binary
-				IP (4 or 6) address and a byte count. It must not block or fail.
+		@type wt: WriteThread
 		"""
 		threading.Thread.__init__(self)
 		self.exe = exe
-		self.writefunc = writefunc
+		self.wt = wt
 		self.asynmap = {}
 		self.asc = asynschedcore(self.asynmap)
 		self.periodic = periodic(self.asc, pinginterval, 0, self.ping_counters)
@@ -204,7 +202,7 @@ class GatherThread(threading.Thread):
 		@type kind: str
 		"""
 		self.counters.append(
-				ReportingCounter(group, kind, self.exe, self.writefunc,
+				ReportingCounter(group, kind, self.exe, self.wt.account,
 					self.asynmap))
 
 	def ping_counters(self):
@@ -233,7 +231,7 @@ class WriteThread(threading.Thread):
 		self.queue = Queue.Queue()
 		self.writeplugin = writeplugin
 
-	def writefunc(self, timestamp, group, addr, value):
+	def account(self, timestamp, group, addr, value):
 		self.queue.put(("account", timestamp, group, addr, value))
 
 	def terminate(self):
@@ -276,7 +274,7 @@ def main():
 			config["main"]["plugin"]).plugin(config)
 	wt = WriteThread(plugin)
 	gt = GatherThread(int(config["main"]["interval"]), config["main"]["exe"],
-		wt.writefunc)
+		wt.account)
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
 

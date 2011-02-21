@@ -193,7 +193,7 @@ class GatherThread(threading.Thread):
 		self.wt = wt
 		self.asynmap = {}
 		self.asc = asynschedcore(self.asynmap)
-		self.periodic = periodic(self.asc, pinginterval, 0, self.ping_counters)
+		self.periodic = periodic(self.asc, pinginterval, 0, self.request_data)
 		self.counters = []
 
 	def add_counter(self, group, kind):
@@ -205,7 +205,8 @@ class GatherThread(threading.Thread):
 				ReportingCounter(group, kind, self.exe, self.wt.account,
 					self.asynmap))
 
-	def ping_counters(self):
+	def request_data(self):
+		self.wt.start_write()
 		for counter in self.counters:
 			counter.request_data()
 		if not self.asynmap:
@@ -230,6 +231,9 @@ class WriteThread(threading.Thread):
 		threading.Thread.__init__(self)
 		self.queue = Queue.Queue()
 		self.writeplugin = writeplugin
+
+	def start_write(self):
+		self.queue.put(("start_write",))
 
 	def account(self, timestamp, group, addr, value):
 		self.queue.put(("account", timestamp, group, addr, value))

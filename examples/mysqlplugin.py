@@ -44,7 +44,7 @@ class backend:
 		raise MySQLdb.OperationalError(2003)
 
 	def do_query(self, query, params):
-		while True:
+		for _ in range(int(self.config["main"]["query_attempts"])):
 			try:
 				self.cursor.execute(query, params)
 				return self.cursor.fetchall()
@@ -53,9 +53,10 @@ class backend:
 					raise # no clue what to do
 				self.do_reconnect()
 				# implicit continue
+		raise MySQLdb.OperationalError(2006)
 
 	def do_modify(self, query, params):
-		while True:
+		for _ in range(int(self.config["main"]["query_attempts"])):
 			try:
 				self.cursor.execute(query, params)
 				self.db.commit()
@@ -65,6 +66,7 @@ class backend:
 					raise # no clue what to do
 				self.do_reconnect()
 				# implicit continue
+		raise MySQLdb.OperationalError(2006)
 
 	def create_current_table(self, group):
 		table_name = "%s%s" % (self.groups[group]["table_prefix"],

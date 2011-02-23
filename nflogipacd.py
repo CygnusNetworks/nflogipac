@@ -146,8 +146,7 @@ class Counter(asyncore.dispatcher):
 		@type timestamp: float
 		@type addr: str
 		"""
-		print "we lost %d packets" % count
-		# raise NotImplementedError # TODO: make overriding mandatory
+		raise NotImplementedError
 
 class DebugCounter(Counter):
 	def __init__(self, *args, **kwargs):
@@ -162,25 +161,35 @@ class DebugCounter(Counter):
 	def handle_cmd_end(self):
 		print("end %r" % (self.pending,))
 
+	def handle_cmd_loss(self, timestamp, count):
+		print("lost at least %d segments" % count)
+
 class ReportingCounter(Counter):
-	def __init__(self, group, kind, writefunc, endfunc, map=None):
+	def __init__(self, group, kind, writefunc, endfunc, lossfunc, map=None):
 		"""
 		@type group: int
 		@type kind: str
 		@type writefunc: (float, int, str, int) -> None
 		@param writefunc: is a function taking a timestamp, a group, a binary
 				IP (4 or 6) address and a byte count. It must not block or fail.
-		@param endfunc: int -> None
+		@type endfunc: int -> None
+		@param endfunc takes a group
+		@type lossfunc: (float, int, int) -> None
+		@param lossfunc: takes a timestamp, a group and a count
 		"""
 		Counter.__init__(self, group, kind, map)
 		self.writefunc = writefunc
 		self.endfunc = endfunc
+		self.lossfunc = lossfunc
 
 	def handle_cmd_update(self, timestamp, addr, value):
 		self.writefunc(timestamp, self.group, addr, value)
 
 	def handle_cmd_end(self):
 		self.endfunc(self.group)
+
+	def handle_cmd_loss(self, timestamp, count):
+		self.lossfunc(timestamp, self.group, count)
 
 class GatherThread(threading.Thread):
 	def __init__(self, pinginterval, wt):
@@ -204,7 +213,8 @@ class GatherThread(threading.Thread):
 		"""
 		assert group not in self.counters
 		self.counters[group] = ReportingCounter(group, kind, self.wt.account,
-				self.end_hook, self.asynmap)
+				self.end_hook, lambda _, __:None, self.asynmap)
+		# TODO: pass a real loss function
 
 	def request_data(self):
 		self.wt.start_write()

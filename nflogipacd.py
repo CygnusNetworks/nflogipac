@@ -237,6 +237,24 @@ class GatherThread(threading.Thread):
 		self.request_data()
 		self.close_on_end = True
 
+	def handle_sigchld(self, signum, stackframe):
+		while True:
+			pid, status = os.waitpid(-1, os.WNOHANG)
+			if pid == 0:
+				return
+			for group, counter in self.counters.items():
+				if counter.pid == pid:
+					try:
+						self.counters_working.remove(group)
+					except KeyError:
+						pass
+					else:
+						# only executed if group was actually removed
+						if not self.counters_working:
+							self.wt.end_write()
+					self.counters.pop(group).close()
+					break
+
 class WriteThread(threading.Thread):
 	def __init__(self, writeplugin):
 		threading.Thread.__init__(self)
@@ -287,6 +305,7 @@ def main():
 		gt.ping_now()
 	signal.signal(signal.SIGTERM, handle_sigterm)
 	signal.signal(signal.SIGHUP, handle_sighup)
+	signal.signal(signal.SIGCHLD, gt.handle_sigchld)
 	syslog.openlog("nflogipac", syslog.LOG_PID, syslog.LOG_DAEMON)
 
 	wt.start()

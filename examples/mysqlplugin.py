@@ -3,6 +3,7 @@ import MySQLdb
 import MySQLdb.cursors
 import os
 from nflogipac import AddressFormatter
+import syslog
 
 class backend:
 	def __init__(self, dbconf, config):
@@ -106,6 +107,8 @@ class backend:
 
 class plugin:
 	def __init__(self, config):
+		self.queue_size_warn = int(config["main"]["queue_size_warn"])
+		self.queue_age_warn = int(config["main"]["queue_age_warn"])
 		self.formatter = AddressFormatter(config)
 		self.backends = []
 		for dbconf in config["databases"].values():
@@ -113,6 +116,10 @@ class plugin:
 
 	def run(self, queue):
 		while True:
+			qsize = queue.qsize()
+			if qsize > self.queue_size_warn:
+				syslog.syslog(syslog.LOG_WARNING, ("queue contains at least " +
+						"%d entries") % qsize)
 			entry = queue.get()
 			if entry[0] == "terminate":
 				return
@@ -121,6 +128,10 @@ class plugin:
 					backend.start_write()
 			elif entry[0] == "account":
 				timestamp, group, addr, value = entry[1:]
+				queue_age = time.time() - timestamp
+				if queue_age > self.queue_age_warn:
+					syslog.syslog(syslog.LOG_WARNING, "processing of queue " +
+							"lacks behind for at least %d seconds" % queue_age)
 				for backend in self.backends:
 					backend.account(group, self.formatter(group, addr), value)
 			elif entry[0] == "end_write":

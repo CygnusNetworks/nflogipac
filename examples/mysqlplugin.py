@@ -13,7 +13,6 @@ class backend:
 		self.groups = dict((int(key), value) for key, value
 				in config["groups"].items())
 		self.current_tables = {}
-		self.do_connect()
 
 	def do_connect(self):
 		self.do_close()
@@ -85,7 +84,10 @@ class backend:
 		rows = self.do_query(query, params)
 		return rows[0]["userid"]
 
-	def __call__(self, group, addr, value):
+	def start_write(self):
+		self.do_reconnect()
+
+	def account(self, group, addr, value):
 		self.create_current_table(group)
 		query = "INSERT INTO %s %s;" % (self.current_tables[group],
 				self.groups[group]["insert"].replace("?", "%s"))
@@ -95,6 +97,9 @@ class backend:
 			parammap["userid"] = self.lookup_userid(group, addr)
 		params = list(map(parammap.__getitem__, params))
 		self.do_modify(query, params)
+
+	def end_write(self):
+		self.do_close()
 
 class plugin:
 	def __init__(self, config):
@@ -108,7 +113,13 @@ class plugin:
 			entry = queue.get()
 			if entry[0] == "terminate":
 				return
+			elif entry[0] == "start_write":
+				for backend in self.backends:
+					backend.start_write()
 			elif entry[0] == "account":
 				timestamp, group, addr, value = entry[1:]
 				for backend in self.backends:
-					backend(group, self.formatter(group, addr), value)
+					backend.account(group, self.formatter(group, addr), value)
+			elif entry[0] == "end_write":
+				for backend in self.backends:
+					backend.end_write()

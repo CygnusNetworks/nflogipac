@@ -33,14 +33,15 @@ class backend:
 			self.db = None
 
 	def do_reconnect(self):
-		while True:
+		for _ in range(int(self.config["main"]["reconnect_attempts"])):
 			try:
 				return self.do_connect()
 			except MySQLdb.OperationalError, error:
 				if error.args[0] != 2003: # Can't connect to MySQL server on ...
 					raise # no clue what to do
-				time.sleep(1)
+				time.sleep(int(self.config["main"]["reconnect_interval"]))
 				# implicit continue
+		raise MySQLdb.OperationalError(2003)
 
 	def do_query(self, query, params):
 		while True:

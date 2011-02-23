@@ -217,7 +217,7 @@ class GatherThread(threading.Thread):
 		if not self.counters_working:
 			self.wt.end_write()
 		if self.close_on_end:
-			self.counter.pop(group).close()
+			self.counters.pop(group).close()
 
 	def ping_counters(self):
 		self.request_data()

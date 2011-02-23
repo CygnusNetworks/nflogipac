@@ -103,6 +103,12 @@ class plugin:
 		for dbconf in config["databases"].values():
 			self.backends.append(backend(dbconf, config))
 
-	def account(self, timestamp, group, addr, value):
-		for backend in self.backends:
-			backend(group, self.formatter(group, addr), value)
+	def run(self, queue):
+		while True:
+			entry = queue.get()
+			if entry[0] == "terminate":
+				return
+			elif entry[0] == "account":
+				timestamp, group, addr, value = entry[1:]
+				for backend in self.backends:
+					backend(group, self.formatter(group, addr), value)

@@ -243,20 +243,7 @@ class WriteThread(threading.Thread):
 		self.queue.put(("terminate",))
 
 	def run(self):
-		while True:
-			entry = self.queue.get()
-			if entry[0] == "terminate":
-				break
-			elif entry[0] == "account":
-				timestamp, group, addr, value = entry[1:]
-				try:
-					self.writeplugin.account(timestamp, group, addr, value)
-				except Exception, e:
-					syslog.syslog(syslog.LOG_ERR, "Caught %s from backend: %s" %
-							(type(e).__name__, str(e)))
-					for line in traceback.format_exc(sys.exc_info()[2]) \
-							.splitlines():
-						syslog.syslog(syslog.LOG_ERR, line)
+		self.writeplugin.run(self.queue)
 
 config_spec = configobj.ConfigObj("""
 [main]

@@ -163,27 +163,24 @@ class DebugCounter(Counter):
 		print("end %r" % (self.pending,))
 
 class ReportingCounter(Counter):
-	def __init__(self, group, kind, writefunc, map=None):
+	def __init__(self, group, kind, writefunc, endfunc, map=None):
 		"""
 		@type group: int
 		@type kind: str
 		@type writefunc: (float, int, str, int) -> None
 		@param writefunc: is a function taking a timestamp, a group, a binary
 				IP (4 or 6) address and a byte count. It must not block or fail.
+		@param endfunc: int -> None
 		"""
 		Counter.__init__(self, group, kind, map)
 		self.writefunc = writefunc
-		self.close_on_end = False
-
-	def schedule_terminate(self):
-		self.close_on_end = True
+		self.endfunc = endfunc
 
 	def handle_cmd_update(self, timestamp, addr, value):
 		self.writefunc(timestamp, self.group, addr, value)
 
 	def handle_cmd_end(self):
-		if self.close_on_end:
-			self.close()
+		self.endfunc(self.group)
 
 class GatherThread(threading.Thread):
 	def __init__(self, pinginterval, wt):
@@ -196,20 +193,34 @@ class GatherThread(threading.Thread):
 		self.asynmap = {}
 		self.asc = asynschedcore(self.asynmap)
 		self.periodic = periodic(self.asc, pinginterval, 0, self.request_data)
-		self.counters = []
+		self.counters = {}
+		self.counters_working = 0
+		self.close_on_end = False
 
 	def add_counter(self, group, kind):
 		"""
 		@type group: int
 		@type kind: str
 		"""
-		self.counters.append(
-				ReportingCounter(group, kind, self.wt.account, self.asynmap))
+		assert group not in self.counters
+		self.counters[group] = ReportingCounter(group, kind, self.wt.account,
+				self.end_hook, self.asynmap)
 
 	def request_data(self):
 		self.wt.start_write()
-		for counter in self.counters:
+		self.counters_working = set(self.counters.keys())
+		for counter in self.counters.values():
 			counter.request_data()
+
+	def end_hook(self, group):
+		self.counters_working.remove(group)
+		if not self.counters_working:
+			self.wt.end_write()
+		if self.close_on_end:
+			self.counter.pop(group).close()
+
+	def ping_counters(self):
+		self.request_data()
 		if not self.asynmap:
 			self.periodic.stop()
 
@@ -223,9 +234,8 @@ class GatherThread(threading.Thread):
 
 	def terminate(self):
 		self.periodic.stop()
-		for counter in self.counters:
-			counter.request_data()
-			counter.schedule_terminate()
+		self.request_data()
+		self.close_on_end = True
 
 class WriteThread(threading.Thread):
 	def __init__(self, writeplugin):
@@ -235,6 +245,9 @@ class WriteThread(threading.Thread):
 
 	def start_write(self):
 		self.queue.put(("start_write",))
+
+	def end_write(self):
+		self.queue.put(("end_write",))
 
 	def account(self, timestamp, group, addr, value):
 		self.queue.put(("account", timestamp, group, addr, value))

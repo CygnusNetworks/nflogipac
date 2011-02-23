@@ -10,8 +10,10 @@ class plugin:
 			entry = queue.get()
 			if entry[0] == "terminate":
 				return
-			if entry[0] == "account":
+			elif entry[0] == "account":
 				timestamp, group, addr, value = entry[1:]
 				addr = self.formatter(group, addr)
 				print("accounting %d bytes for address %s on group %d" %
 						(value, addr, group))
+			elif entry[0] == "end_write":
+				print("ending write")

@@ -1,0 +1,33 @@
+A plugin basically is a python script that meets the following set of
+requirements:
+
+ * It must be importable.
+ * After importing it must provide a class(-like) called "plugin".
+ * The constructor of this class must take precisely one parameter. This
+   parameter is a configobj.ConfigObj instance for the configuration. The plugin
+   must not modify this object.
+ * It must provide a method called "run" which takes one parameter. This
+   parameter currently is a Queue.Queue instance. However a
+   multiprocessing.Queue should do as well.
+
+The plugin class is initialized during program startup. During startup a fork
+to background may occur, thus changing for instance the pid. After startup a
+separate threading.Thread (or multiprocessing.Process) executes the run method.
+The passed queue will then be filled with events. Each event is a tuple. The
+first element of the tuple is always a string identifying the type of the
+event.
+
+The daemon will periodically query the counters for values and emit a
+"start_write" event which has no further parameters (elements in the event
+tuple). After this event any number of "account" events is pushed to the queue.
+The account events have parameters timestamp (float), group (int), address
+(str) and value (int). The timestamp is the number of unix seconds since epoch
+at which the counters were queried. The group is the nfnetlink_log group. The
+IP version 4 or 6 address is encoded in binary. The socket.inet_ntop function
+or the nflogipac.AddressFormatter class may be helpful. The value is the total
+number of bytes accounted to this address during the last report interval. This
+sequence of events is terminated with an "end_write" event again without any
+additional parameters. Another event without parameters is the "terminate"
+event. It asks the plugin to return from the run function after storing the
+data that arrived before the terminate event. The terminate event does not
+occur between a start_write and the corresponding end_write event.

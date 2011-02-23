@@ -25,7 +25,11 @@ The account events have parameters timestamp (float), group (int), address
 at which the counters were queried. The group is the nfnetlink_log group. The
 IP version 4 or 6 address is encoded in binary. The socket.inet_ntop function
 or the nflogipac.AddressFormatter class may be helpful. The value is the total
-number of bytes accounted to this address during the last report interval. This
+number of bytes accounted to this address during the last report interval.
+Additionally a number of "loss" events may occur. These have three parameters
+timestamp (float), group (int) and count (int). The timestamp and group have
+the same semantics as in the account event. The count gives a lower bound on
+the number of segments that were lost during the last report interval. This
 sequence of events is terminated with an "end_write" event again without any
 additional parameters. Another event without parameters is the "terminate"
 event. It asks the plugin to return from the run function after storing the

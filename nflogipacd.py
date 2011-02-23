@@ -213,8 +213,7 @@ class GatherThread(threading.Thread):
 		"""
 		assert group not in self.counters
 		self.counters[group] = ReportingCounter(group, kind, self.wt.account,
-				self.end_hook, lambda _, __:None, self.asynmap)
-		# TODO: pass a real loss function
+				self.end_hook, self.wt.notice_loss, self.asynmap)
 
 	def request_data(self):
 		self.wt.start_write()
@@ -279,6 +278,9 @@ class WriteThread(threading.Thread):
 
 	def account(self, timestamp, group, addr, value):
 		self.queue.put(("account", timestamp, group, addr, value))
+
+	def notice_loss(self, timestamp, group, count):
+		self.queue.put(("loss", timestamp, group, count))
 
 	def terminate(self):
 		self.queue.put(("terminate",))

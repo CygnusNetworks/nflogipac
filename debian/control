@@ -1,0 +1,24 @@
+Source: nflogipac
+Build-Depends: debhelper (>= 7),
+ libnetfilter-log-dev,
+ libboost-dev (>= 1.40) | libboost1.42-dev | libboost1.40-dev,
+ libboost-thread-dev (>= 1.40) | libboost-thread1.42-dev | libboost-thread1.40-dev,
+ python
+Maintainer: Helmut Grohne <h.grohne@cygnusnetworks.de>
+Standards-Version: 3.9.1
+Section: net
+Priority: extra
+XS-Python-Version: >= 2.5
+
+Package: nflogipac
+Architecture: any
+Depends: python-configobj, ${shlibs:Depends}, ${python:Depends}, ${misc:Depends}
+Recommends: iptables
+Suggests: python-mysqldb
+XB-Python-Version: ${python:Versions}
+Description: netfilter NFLOG based IP accounting daemon
+ It allows IP based accounting of traffic that is matched by iptables rules.
+ Instead of the ULOG the more recent NFLOG target is used. This allows
+ accounting IPv6 traffic. Furthermore this software is a hybrid of C++ and
+ Python. The performance of C++ is used to count the traffic and the flexibility
+ of Python is used to store the accounting information in a (MySQL) database.

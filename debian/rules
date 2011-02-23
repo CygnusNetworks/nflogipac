@@ -1,0 +1,8 @@
+#!/usr/bin/make -f
+export PREFIX=/usr
+%:
+	dh $@
+
+clean:
+	dh $@
+	rm -f debian/debhelper.log

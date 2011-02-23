@@ -1,0 +1,5 @@
+examples/setup-iptables.sh
+examples/debug.conf
+examples/debugplugin.py
+examples/mysql.conf
+examples/mysqlplugin.py

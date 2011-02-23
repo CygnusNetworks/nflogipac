@@ -1,0 +1,10 @@
+Format: http://svn.debian.org/wsvn/dep/web/deps/dep5.mdwn?op=file&rev=166
+Upstream-Contact: http://code.google.com/p/nflogipac/issues/list
+ or info@cygnusnetworks.de
+Source: http://code.google.com/p/nflogipac
+
+Files: *
+Copyright: 2011 Cygnus Networks GmbH
+License: GPL-3
+ On Debian systems the full license text can be found at
+ /usr/share/common-licenses/GPL-3.

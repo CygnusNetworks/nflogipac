@@ -201,7 +201,7 @@ class GatherThread(threading.Thread):
 		threading.Thread.__init__(self)
 		self.wt = wt
 		self.asc = asynschedcore({})
-		self.periodic = periodic(self.asc, pinginterval, 0, self.request_data)
+		self.periodic = periodic(self.asc, pinginterval, 0, self.periodically)
 		self.counters = {}
 		self.counters_working = 0
 		self.close_on_end = False
@@ -228,7 +228,7 @@ class GatherThread(threading.Thread):
 		if self.close_on_end:
 			self.counters.pop(group).close()
 
-	def ping_counters(self):
+	def periodically(self):
 		self.request_data()
 		if not self.asc.asynmap:
 			self.periodic.stop()

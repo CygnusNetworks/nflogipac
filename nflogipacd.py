@@ -286,7 +286,14 @@ class WriteThread(threading.Thread):
 		self.queue.put(("terminate",))
 
 	def run(self):
-		self.writeplugin.run(self.queue)
+		try:
+			self.writeplugin.run(self.queue)
+		except Exception, exc:
+			syslog.syslog(syslog.LOG_ERR, "Caught %s from plugin: %s" %
+					(type(exc).__name__, str(exc)))
+			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
+				syslog.syslog(syslog.LOG_ERR, line)
+		os.kill(os.getpid(), signal.SIGTERM)
 
 config_spec = configobj.ConfigObj("""
 [main]

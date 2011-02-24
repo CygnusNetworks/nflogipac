@@ -230,11 +230,11 @@ class GatherThread(threading.Thread):
 
 	def periodically(self):
 		self.request_data()
-		if not self.asc.asynmap:
+		if not self.counters:
 			self.periodic.stop()
 
 	def run(self):
-		if self.asc.asynmap:
+		if self.counters:
 			self.periodic.start()
 		self.asc.run()
 

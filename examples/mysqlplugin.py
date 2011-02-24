@@ -4,6 +4,7 @@ import MySQLdb.cursors
 import os
 from nflogipac import AddressFormatter
 import syslog
+import socket
 
 class backend:
 	def __init__(self, dbconf, config):
@@ -95,7 +96,8 @@ class backend:
 		self.create_current_table(group)
 		query = "INSERT INTO %s %s;" % (self.current_tables[group],
 				self.groups[group]["insert"].replace("?", "%s"))
-		parammap = dict(pid=os.getpid(), address=addr, value=value)
+		parammap = dict(pid=os.getpid(), hostname=socket.gethostname(),
+				address=addr, value=value)
 		params = self.groups[group]["insert_params"]
 		if "userid" in params:
 			parammap["userid"] = self.lookup_userid(group, addr)

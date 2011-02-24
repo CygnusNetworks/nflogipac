@@ -246,7 +246,7 @@ class GatherThread(threading.Thread):
 		self.request_data()
 		self.close_on_end = True
 
-	def handle_sigchld(self, signum, stackframe):
+	def handle_sigchld(self):
 		while True:
 			pid, status = os.waitpid(-1, os.WNOHANG)
 			if pid == 0:
@@ -312,13 +312,9 @@ def main():
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
 
-	def handle_sigterm(signum, frame):
-		gt.terminate()
-	def handle_sighup(signum, frame):
-		gt.ping_now()
-	signal.signal(signal.SIGTERM, handle_sigterm)
-	signal.signal(signal.SIGHUP, handle_sighup)
-	signal.signal(signal.SIGCHLD, gt.handle_sigchld)
+	signal.signal(signal.SIGTERM, lambda *_: gt.terminate())
+	signal.signal(signal.SIGHUP, lambda *_: gt.ping_now())
+	signal.signal(signal.SIGCHLD, lambda *_: gt.handle_sigchld())
 	syslog.openlog("nflogipac", syslog.LOG_PID, syslog.LOG_DAEMON)
 
 	wt.start()

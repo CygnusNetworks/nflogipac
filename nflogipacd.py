@@ -16,6 +16,7 @@ import validate
 import syslog
 import traceback
 import fcntl
+import errno
 from nflogipac.asynschedcore import asynschedcore, periodic
 
 try:

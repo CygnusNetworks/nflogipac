@@ -298,7 +298,8 @@ kind = string(min=1)
 """.splitlines(), interpolation=False, list_values=False)
 
 def main():
-	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec)
+	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec,
+			file_error=True)
 	for section_list, key, error in configobj.flatten_errors(config,
 			config.validate(validate.Validator())):
 		raise ValueError("failed to validate %s in section %s" %

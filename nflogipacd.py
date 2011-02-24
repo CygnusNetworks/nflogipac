@@ -200,8 +200,7 @@ class GatherThread(threading.Thread):
 		"""
 		threading.Thread.__init__(self)
 		self.wt = wt
-		self.asynmap = {}
-		self.asc = asynschedcore(self.asynmap)
+		self.asc = asynschedcore({})
 		self.periodic = periodic(self.asc, pinginterval, 0, self.request_data)
 		self.counters = {}
 		self.counters_working = 0
@@ -214,7 +213,7 @@ class GatherThread(threading.Thread):
 		"""
 		assert group not in self.counters
 		self.counters[group] = ReportingCounter(group, kind, self.wt.account,
-				self.end_hook, self.wt.notice_loss, self.asynmap)
+				self.end_hook, self.wt.notice_loss, self.asc.asynmap)
 
 	def request_data(self):
 		self.wt.start_write()
@@ -231,11 +230,11 @@ class GatherThread(threading.Thread):
 
 	def ping_counters(self):
 		self.request_data()
-		if not self.asynmap:
+		if not self.asc.asynmap:
 			self.periodic.stop()
 
 	def run(self):
-		if self.asynmap:
+		if self.asc.asynmap:
 			self.periodic.start()
 		self.asc.run()
 

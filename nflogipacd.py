@@ -300,14 +300,25 @@ class WriteThread(threading.Thread):
 				syslog.syslog(syslog.LOG_ERR, line)
 		os.kill(os.getpid(), signal.SIGTERM)
 
-config_spec = configobj.ConfigObj("""
+syslog_facilities = dict(kern=syslog.LOG_KERN, user=syslog.LOG_USER,
+		mail=syslog.LOG_MAIL, daemon=syslog.LOG_DAEMON, auth=syslog.LOG_AUTH,
+		lpr=syslog.LOG_LPR, new=syslog.LOG_NEWS, uucp=syslog.LOG_UUCP,
+		cron=syslog.LOG_CRON, local0=syslog.LOG_LOCAL0,
+		local1=syslog.LOG_LOCAL1, local2=syslog.LOG_LOCAL2,
+		local3=syslog.LOG_LOCAL3, local4=syslog.LOG_LOCAL4,
+		local5=syslog.LOG_LOCAL5, local6=syslog.LOG_LOCAL6,
+		local7=syslog.LOG_LOCAL7)
+
+config_spec = configobj.ConfigObj(("""
 [main]
 plugin = string(min=1)
 interval = integer(min=1)
+syslog_facility = option(%(syslog_facilities)s, default='daemon')
 [groups]
 [[__many__]]
 kind = string(min=1)
-""".splitlines(), interpolation=False, list_values=False)
+""" % dict(syslog_facilities=", ".join(map(repr, syslog_facilities.keys()))
+	)).splitlines(), interpolation=False, list_values=False)
 
 def main():
 	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec,
@@ -327,7 +338,8 @@ def main():
 	signal.signal(signal.SIGTERM, lambda *_: gt.terminate())
 	signal.signal(signal.SIGHUP, lambda *_: gt.ping_now())
 	signal.signal(signal.SIGCHLD, lambda *_: gt.handle_sigchld())
-	syslog.openlog("nflogipac", syslog.LOG_PID, syslog.LOG_DAEMON)
+	syslog.openlog("nflogipac", syslog.LOG_PID,
+			syslog_facilities[config["main"]["syslog_facility"]])
 
 	wt.start()
 	try:

@@ -24,3 +24,5 @@ class AddressFormatter:
 		@raises ValueError: if the binary address has a wrong length
 		"""
 		return socket.inet_ntop(self.groupmap[group], binaryaddress)
+
+# vim:ts=4 sw=4

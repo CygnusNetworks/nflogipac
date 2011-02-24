@@ -123,3 +123,5 @@ class periodic:
 		self.event = None
 		self.schedule()
 		self.function(*self.args, **self.kwargs)
+
+# vim:ts=4 sw=4

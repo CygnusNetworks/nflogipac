@@ -3,18 +3,28 @@ import sched
 import time
 
 class asynschedcore(sched.scheduler):
-	"""Combine sched.scheduler and asyncore.loop."""
+	"""Combine sched.scheduler and asyncore.loop.
+	@type asynmap: dict
+	@ivar asynmap: Is the map argument passed to asyncore.loop. It is either
+			taken from the constructor or from asyncore.socket_map.
+	"""
 	# On receiving a signal asyncore kindly restarts select. However the signal
 	# handler might change the scheduler instance. This tunable determines the
 	# maximum time in seconds to spend in asycore.loop before reexamining the
 	# scheduler.
 	maxloop = 30
 	def __init__(self, map=None):
+		"""
+		@type map: dict or None
+		@param map: If given this map specifies the map argument passed to
+				asyncore.loop. It is also exported the instance attribute
+				asynmap.
+		"""
 		sched.scheduler.__init__(self, time.time, self._delay)
 		if map is None:
-			self._asynmap = asyncore.socket_map
+			self.asynmap = asyncore.socket_map
 		else:
-			self._asynmap = map
+			self.asynmap = map
 		self._abort_delay = False
 
 	def _maybe_abort_delay(self):
@@ -32,12 +42,12 @@ class asynschedcore(sched.scheduler):
 			return
 		if 0 == timeout:
 			# Should we support this hack, too?
-			# asyncore.loop(0, map=self._asynmap, count=1)
+			# asyncore.loop(0, map=self.asynmap, count=1)
 			return
 		now = time.time()
 		finish = now + timeout
-		while now < finish and self._asynmap:
-			asyncore.loop(min(finish - now, self.maxloop), map=self._asynmap,
+		while now < finish and self.asynmap:
+			asyncore.loop(min(finish - now, self.maxloop), map=self.asynmap,
 					count=1)
 			if self._maybe_abort_delay():
 				return
@@ -65,8 +75,8 @@ class asynschedcore(sched.scheduler):
 		while True:
 			if not self.empty():
 				sched.scheduler.run(self)
-			elif self._asynmap:
-				asyncore.loop(self.maxloop, map=self._asynmap, count=1)
+			elif self.asynmap:
+				asyncore.loop(self.maxloop, map=self.asynmap, count=1)
 			else:
 				break
 

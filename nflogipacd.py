@@ -204,7 +204,7 @@ class GatherThread(threading.Thread):
 		self.periodic = periodic(self.asc, pinginterval, 0, self.periodically)
 		self.counters = {}
 		self.counters_working = 0
-		self.close_on_end = False
+		self.terminating = False
 
 	def add_counter(self, group, kind):
 		"""
@@ -225,7 +225,7 @@ class GatherThread(threading.Thread):
 		self.counters_working.remove(group)
 		if not self.counters_working:
 			self.wt.end_write()
-		if self.close_on_end:
+		if self.terminating:
 			self.counters.pop(group).close()
 
 	def periodically(self):
@@ -243,8 +243,9 @@ class GatherThread(threading.Thread):
 
 	def terminate(self):
 		self.periodic.stop()
-		self.request_data()
-		self.close_on_end = True
+		if not self.terminating:
+			self.request_data()
+			self.terminating = True
 
 	def handle_sigchld(self):
 		while True:

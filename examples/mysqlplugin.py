@@ -71,8 +71,9 @@ class backend:
 		raise MySQLdb.OperationalError(2006)
 
 	def create_current_table(self, group):
-		table_name = "%s%s" % (self.groups[group]["table_prefix"],
-				time.strftime("%g_%m", time.gmtime()))
+		table_name = self.groups[group]["table_prefix"] + \
+				time.strftime(self.groups[group]["table_strftime"],
+						time.gmtime())
 		if table_name == self.current_tables.get(group):
 			return
 		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name,

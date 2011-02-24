@@ -235,7 +235,7 @@ class GatherThread(threading.Thread):
 
 	def run(self):
 		if self.counters:
-			self.periodic.start()
+			self.periodic.schedule()
 		self.asc.run()
 
 	def ping_now(self):

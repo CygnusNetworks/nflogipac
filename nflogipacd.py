@@ -229,6 +229,7 @@ class GatherThread(threading.Thread):
 			self.counters.pop(group).close()
 
 	def periodically(self):
+		syslog.syslog(syslog.LOG_DEBUG, "querying counters")
 		self.request_data()
 		if not self.counters:
 			self.periodic.stop()
@@ -336,17 +337,26 @@ def main():
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
 
-	signal.signal(signal.SIGTERM, lambda *_: gt.terminate())
-	signal.signal(signal.SIGHUP, lambda *_: gt.ping_now())
+	def handle_sigterm(*_):
+		syslog.syslog(syslog.LOG_NOTICE, "recevied SIGTERM")
+		gt.terminate()
+	def handle_sighup(*_):
+		syslog.syslog(syslog.LOG_NOTICE, "received SIGHUP")
+		gt.ping_now()
+	signal.signal(signal.SIGTERM, handle_sigterm)
+	signal.signal(signal.SIGHUP, handle_sighup)
 	signal.signal(signal.SIGCHLD, lambda *_: gt.handle_sigchld())
 	syslog.openlog("nflogipac", syslog.LOG_PID,
 			syslog_facilities[config["main"]["syslog_facility"]])
+	syslog.syslog(syslog.LOG_NOTICE, "started")
 
 	wt.start()
 	try:
 		gt.run()
 	finally:
+		syslog.syslog(syslog.LOG_NOTICE, "gather thread stopped")
 		wt.terminate()
+		syslog.syslog(syslog.LOG_NOTICE, "storage thread stopped")
 
 if __name__ == '__main__':
 	main()

@@ -24,9 +24,5 @@ First of all the firewall needs to be adapted to match the traffic to be
 accounted. See examples/setup-iptables.sh. Then a accounting backend and a
 configuration file is needed. Example accounting backends can be found in
 examples/*.py and example configuration files can be found in examples/*.conf.
-To write your own accounting backend you need to create a Python file which
-defines a class named "plugin". The constructor takes the parsed configuration
-file as a single parameter. A method called "account" takes four parameters (a
-timestamp, a group, a binary address and the number of bytes). The account
-function may block for a while (further accounting data is buffered in a
-different thread).
+For writing your own accounting backend see plugins.txt. For interfacing
+directly with the counters see protocol.txt.

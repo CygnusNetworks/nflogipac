@@ -1,7 +1,7 @@
 CC = gcc
 CFLAGS = -W -Wall -Wextra -pedantic -ansi
 CXX = g++
-CXXFLAGS = -W -Wall -Wextra -pedantic -O2
+CXXFLAGS = -W -Wall -Wextra -pedantic -O2 -DUSE_STANDARD_MAP
 LIBS = -lnetfilter_log
 BOOST_LIBS = -lboost_thread
 GZIP=gzip

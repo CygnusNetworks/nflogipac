@@ -1,8 +1,8 @@
 Source: nflogipac
 Build-Depends: debhelper (>= 7),
  libnetfilter-log-dev,
- libboost-dev (>= 1.40) | libboost1.42-dev | libboost1.40-dev,
- libboost-thread-dev (>= 1.40) | libboost-thread1.42-dev | libboost-thread1.40-dev,
+ libboost-dev (>= 1.35) | libboost1.35-dev,
+ libboost-thread-dev (>= 1.35) | libboost-thread1.35-dev,
  python
 Maintainer: Helmut Grohne <h.grohne@cygnusnetworks.de>
 Standards-Version: 3.9.1

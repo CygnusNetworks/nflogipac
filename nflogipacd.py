@@ -248,7 +248,12 @@ class GatherThread(threading.Thread):
 
 	def handle_sigchld(self):
 		while True:
-			pid, status = os.waitpid(-1, os.WNOHANG)
+			try:
+				pid, status = os.waitpid(-1, os.WNOHANG)
+			except OSError, err:
+				if err.args[0] == errno.ECHILD: # suppress ECHILD
+					return
+				raise
 			if pid == 0:
 				return
 			for group, counter in self.counters.items():

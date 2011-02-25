@@ -88,7 +88,10 @@ class backend:
 		params = self.config["main"]["userid_query_params"]
 		params = list(map(parammap.__getitem__, params))
 		rows = self.do_query(query, params)
-		return rows[0]["userid"]
+		try:
+			return rows[0]["userid"]
+		except IndexError: # no rows returned
+			return None # results in a NULL value
 
 	def start_write(self):
 		self.do_reconnect()

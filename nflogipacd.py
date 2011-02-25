@@ -301,6 +301,7 @@ class WriteThread(threading.Thread):
 					(type(exc).__name__, str(exc)))
 			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 				syslog.syslog(syslog.LOG_ERR, line)
+		# FIXME: generates spurious SIGTERM syslog message
 		os.kill(os.getpid(), signal.SIGTERM)
 
 syslog_facilities = dict(kern=syslog.LOG_KERN, user=syslog.LOG_USER,

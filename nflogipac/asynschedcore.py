@@ -4,6 +4,11 @@ import time
 
 class asynschedcore(sched.scheduler):
 	"""Combine sched.scheduler and asyncore.loop.
+
+	If asyncore.ExitNow is raised from anything (indirectly) called by the run
+	method, the exception is passed through, because asyncore passes on this
+	exception and sched passes on any exceptions.
+
 	@type asynmap: dict
 	@ivar asynmap: Is the map argument passed to asyncore.loop. It is either
 			taken from the constructor or from asyncore.socket_map.

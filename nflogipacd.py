@@ -203,7 +203,7 @@ class GatherThread(threading.Thread):
 		self.asc = asynschedcore({})
 		self.periodic = periodic(self.asc, pinginterval, 0, self.periodically)
 		self.counters = {}
-		self.counters_working = 0
+		self.counters_working = set()
 		self.terminating = False
 
 	def add_counter(self, group, kind):

@@ -249,6 +249,27 @@ class GatherThread(threading.Thread):
 			self.request_data()
 			self.terminating = True
 
+	def handle_child_death(self, pid):
+		"""
+		@type pid: int
+		@rtype: bool
+		@returns: whether the child was a counter
+		"""
+		for group, counter in self.counters.items():
+			if counter.pid != pid:
+				continue
+			try:
+				self.counters_working.remove(group)
+			except KeyError:
+				pass
+			else:
+				# only executed if group was actually removed
+				if not self.counters_working:
+					self.wt.end_write()
+			self.counters.pop(group).close()
+			return True
+		return False
+
 	def handle_sigchld(self):
 		while True:
 			try:
@@ -259,18 +280,7 @@ class GatherThread(threading.Thread):
 				raise
 			if pid == 0:
 				return
-			for group, counter in self.counters.items():
-				if counter.pid == pid:
-					try:
-						self.counters_working.remove(group)
-					except KeyError:
-						pass
-					else:
-						# only executed if group was actually removed
-						if not self.counters_working:
-							self.wt.end_write()
-					self.counters.pop(group).close()
-					break
+			self.handle_child_death(pid)
 
 class WriteThread(threading.Thread):
 	def __init__(self, writeplugin):

@@ -301,8 +301,9 @@ class WriteThread(threading.Thread):
 					(type(exc).__name__, str(exc)))
 			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 				syslog.syslog(syslog.LOG_ERR, line)
-		# FIXME: generates spurious SIGTERM syslog message
-		os.kill(os.getpid(), signal.SIGTERM)
+		# The plugin is now finished or it died. There is no point in keeping
+		# things going, so we terminate *all* threads now.
+		os._exit(0)
 
 syslog_facilities = dict(kern=syslog.LOG_KERN, user=syslog.LOG_USER,
 		mail=syslog.LOG_MAIL, daemon=syslog.LOG_DAEMON, auth=syslog.LOG_AUTH,

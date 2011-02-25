@@ -258,6 +258,12 @@ class GatherThread(threading.Thread):
 		for group, counter in self.counters.items():
 			if counter.pid != pid:
 				continue
+			if self.terminating:
+				syslog.syslog(syslog.LOG_NOTICE, ("child pid:%d group:%d " +
+						"terminated") % (pid, group))
+			else:
+				syslog.syslog(syslog.LOG_ERR, ("child pid:%d group:%d " +
+						"unexpectedly died") % (pid, group))
 			try:
 				self.counters_working.remove(group)
 			except KeyError:

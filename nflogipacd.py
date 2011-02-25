@@ -280,7 +280,8 @@ class GatherThread(threading.Thread):
 				raise
 			if pid == 0:
 				return
-			self.handle_child_death(pid)
+			if self.handle_child_death(pid):
+				self.terminate()
 
 class WriteThread(threading.Thread):
 	def __init__(self, writeplugin):

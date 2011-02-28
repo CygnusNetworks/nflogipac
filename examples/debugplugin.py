@@ -17,3 +17,5 @@ class plugin:
 						(value, addr, group))
 			elif entry[0] == "end_write":
 				print("ending write")
+
+# vim:ts=4 sw=4

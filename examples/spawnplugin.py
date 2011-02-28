@@ -46,3 +46,5 @@ class plugin:
 		self.child = None
 		if retcode != 0:
 			raise ValueError("child returned non-zero")
+
+# vim:ts=4 sw=4

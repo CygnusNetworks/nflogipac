@@ -26,3 +26,4 @@ distutils.core.setup(name='nflogipac',
 		]
 	)
 
+# vim:ts=4 sw=4

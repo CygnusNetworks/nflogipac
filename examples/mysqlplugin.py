@@ -143,3 +143,5 @@ class plugin:
 			elif entry[0] == "end_write":
 				for backend in self.backends:
 					backend.end_write()
+
+# vim:ts=4 sw=4

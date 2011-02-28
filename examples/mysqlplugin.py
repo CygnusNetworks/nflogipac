@@ -2,7 +2,7 @@ import time
 import MySQLdb
 import MySQLdb.cursors
 import os
-from nflogipac import AddressFormatter
+from nflogipac.plugins import AddressFormatter
 import syslog
 import socket
 

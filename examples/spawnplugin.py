@@ -7,39 +7,25 @@ shell for spawning the process.
 """
 
 import subprocess
-from nflogipac import AddressFormatter
+from nflogipac.plugins import FormattingPlugin
 
-class plugin:
+class plugin(FormattingPlugin):
 	def __init__(self, config):
+		FormattingPlugin.__init__(self, config)
 		self.cmdline = config["main"]["cmdline"]
-		self.formatter = AddressFormatter(config)
 		self.child = None
 
-	def run(self, queue):
-		while True:
-			entry = queue.get()
-			if entry[0] == "terminate":
-				return
-			elif entry[0] == "start_write":
-				self.start_write()
-			elif entry[0] == "account":
-				timestamp, group, addr, value = entry[1:]
-				addr = self.formatter(group, addr)
-				self.account(timestamp, group, addr, value)
-			elif entry[0] == "end_write":
-				self.end_write()
-
-	def start_write(self):
+	def handle_start_write(self):
 		assert self.child is None
 		self.child = subprocess.Popen(self.cmdline, shell=True,
 				stdin=subprocess.PIPE, close_fds=True)
 
-	def account(self, timestamp, group, addr, value):
+	def handle_formatted_account(self, timestamp, group, addr, value):
 		assert self.child is not None
 		self.child.stdin.write("%d/%d/%s/%d\n" %
 				(timestamp, group, addr, value))
 
-	def end_write(self):
+	def handle_end_write(self):
 		assert self.child is not None
 		self.child.stdin.close()
 		retcode = self.child.wait()

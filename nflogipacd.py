@@ -343,6 +343,10 @@ kind = string(min=1)
 	)).splitlines(), interpolation=False, list_values=False)
 
 def main():
+	if len(sys.argv) != 2:
+		print("Usage: %s <configfile>" % sys.argv[0])
+		sys.exit(1)
+
 	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec,
 			file_error=True)
 	for section_list, key, error in configobj.flatten_errors(config,

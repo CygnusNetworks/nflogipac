@@ -3,9 +3,13 @@ import MySQLdb
 import MySQLdb.cursors
 import os
 from nflogipac.plugins import AddressFormatter
+import sys
 import syslog
 import socket
 import traceback
+
+TRAFFIC_DB_START="traffic_"
+
 
 class LaggyMySQLdb:
 	def __init__(self, dbconf, config):
@@ -149,8 +153,17 @@ class plugin:
 			self.formatter = AddressFormatter(config)
 			self.backends = []
 			for dbname, dbconf in config["databases"].items():
-				if dbname.startswith("traffic_"):
-					useriddbconf = config["databases"].get("userid_" % dbname[8:])
+				if dbname.startswith(TRAFFIC_DB_START):
+					syslog.syslog(syslog.LOG_DEBUG, "Found database %s for traffic information" % dbname)
+					useriddbconf = config["databases"].get("userid_%s" % dbname[len(TRAFFIC_DB_START):])
+					if useriddbconf:
+						syslog.syslog(syslog.LOG_DEBUG, "Found database %s for userid information" % repr(useriddbconf))
+					else:
+						if config["main"].has_key("userid_query"):
+							syslog.syslog(syslog.LOG_ERR, "Not using any userid database since no database definition userid_%s could be found" % dbname[len(TRAFFIC_DB_START):])
+						else:
+							syslog.syslog(syslog.LOG_DEBUG, "Not using any userid database")
+							
 					self.backends.append(backend(dbconf, config, useriddbconf))
 		except Exception,e:
 			syslog.syslog(syslog.LOG_ERR, "Plugin failed to initialize. Error in __init__ Exception %s Traceback %s" % (e,traceback.format_exc(sys.exc_info()[2]).replace("\n", " ### ")))

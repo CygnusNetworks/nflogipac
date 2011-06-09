@@ -224,7 +224,7 @@ class GatherThread(threading.Thread):
 	def end_hook(self, group):
 		self.counters_working.remove(group)
 		if not self.counters_working:
-			syslog.syslog(syslog.LOG_DEBUG, "received end packet form all counters")
+			syslog.syslog(syslog.LOG_DEBUG, "received end packet from all counters")
 			self.wt.end_write()
 		if self.terminating:
 			self.counters.pop(group).close()

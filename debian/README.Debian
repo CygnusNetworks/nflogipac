@@ -12,11 +12,6 @@ to add the name of the firewall init script to the Required-Start LSB header in
 
 The default path to the configuration is /etc/nflogipac/nflogipac.conf and can
 be changed in /etc/default/nflogipac. Examples for configurations can be found
-in /usr/share/doc/nflogipac/examples/*.conf. It is recommended to update the
-"plugin" variable to use an absolute path. For further details on configuring
+in /usr/share/doc/nflogipac/examples/*.conf. For further details on configuring
 the daemon see /usr/share/doc/nflogipac/README and
 /usr/share/doc/nflogipac/plugins.txt.
-
-3) Enable nflogipac.
-
-Set NFLOGIPAC_ENABLE=true in /etc/default/nflogipac.

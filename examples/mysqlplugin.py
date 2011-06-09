@@ -80,12 +80,18 @@ class LaggyMySQLdb:
 		raise MySQLdb.OperationalError(2006)
 
 class backend:
-	def __init__(self, dbconf, config):
+	def __init__(self, dbconf, config, useriddbconf=None):
 		self.config = config
 		self.db = LaggyMySQLdb(dbconf, config)
 		self.groups = dict((int(key), value) for key, value
 				in config["groups"].items())
 		self.current_tables = {}
+		if useriddbconf is not None and \
+				any("userid" in groupconf["insert_params"] \
+					for groupconf in self.groups.values()):
+			self.useriddb = LaggyMySQLdb(useriddbconf, config)
+		else:
+			self.useriddb = None
 
 	def create_current_table(self, group):
 		table_name = self.groups[group]["table_prefix"] + \
@@ -104,7 +110,10 @@ class backend:
 		parammap = dict(group=group, address=addr)
 		params = self.config["main"]["userid_query_params"]
 		params = list(map(parammap.__getitem__, params))
-		rows = self.db.query(query, params)
+		if self.useriddb is not None:
+			rows = self.useriddb.query(query, params)
+		else:
+			rows = self.db.query(query, params)
 		try:
 			return rows[0]["userid"]
 		except IndexError: # no rows returned
@@ -112,6 +121,8 @@ class backend:
 
 	def start_write(self):
 		self.db.connect()
+		if self.useriddb is not None:
+			self.useriddb.connect()
 
 	def account(self, group, addr, value):
 		self.create_current_table(group)
@@ -126,6 +137,8 @@ class backend:
 		self.db.execute(query, params)
 
 	def end_write(self):
+		if self.useriddb is not None:
+			self.useriddb.close()
 		self.db.close()
 
 class plugin:
@@ -134,8 +147,10 @@ class plugin:
 		self.queue_age_warn = int(config["main"]["queue_age_warn"])
 		self.formatter = AddressFormatter(config)
 		self.backends = []
-		for dbconf in config["databases"].values():
-			self.backends.append(backend(dbconf, config))
+		for dbname, dbconf in config["databases"].items():
+			if dbname.starts_with("traffic_"):
+				useriddbconf = config["databases"].get("userid_" % dbname[8:])
+				self.backends.append(backend(dbconf, config, useriddbconf))
 
 	def run(self, queue):
 		while True:

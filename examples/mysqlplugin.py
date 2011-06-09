@@ -110,7 +110,7 @@ class backend:
 		self.current_tables[group] = table_name
 
 	def lookup_userid(self, group, addr):
-		query = "SELECT %s;" % (self.config["main"]["userid_query"]
+		query = "%s;" % (self.config["main"]["userid_query"]
 				.replace("?", "%s"))
 		parammap = dict(group=group, address=addr)
 		params = self.config["main"]["userid_query_params"]
@@ -156,8 +156,11 @@ class plugin:
 				if dbname.startswith(TRAFFIC_DB_START):
 					syslog.syslog(syslog.LOG_DEBUG, "Found database %s for traffic information" % dbname)
 					useriddbconf = config["databases"].get("userid_%s" % dbname[len(TRAFFIC_DB_START):])
+					#FIXME: do basic checking. If a userid_query is given, userid should be present in queries
+					#if userid is there, a useriddb should also be specified.
+					#generate error and exit
 					if useriddbconf:
-						syslog.syslog(syslog.LOG_DEBUG, "Found database %s for userid information" % repr(useriddbconf))
+						syslog.syslog(syslog.LOG_DEBUG, "Found database for userid information")
 					else:
 						if config["main"].has_key("userid_query"):
 							syslog.syslog(syslog.LOG_ERR, "Not using any userid database since no database definition userid_%s could be found" % dbname[len(TRAFFIC_DB_START):])

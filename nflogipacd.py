@@ -368,7 +368,7 @@ def main():
 		gt.add_counter(int(group), cfg["kind"])
 
 	def handle_sigterm(*_):
-		syslog.syslog(syslog.LOG_NOTICE, "recevied SIGTERM")
+		syslog.syslog(syslog.LOG_NOTICE, "received SIGTERM")
 		gt.terminate()
 	def handle_sighup(*_):
 		syslog.syslog(syslog.LOG_NOTICE, "received SIGHUP")

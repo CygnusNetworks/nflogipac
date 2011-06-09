@@ -1,5 +1,5 @@
 # The daemon is not useful without a configuration, so it is disabled by
 # default. Please read /usr/share/doc/nflogipac/README.Debian.
-NFLOGIPAC_ENABLE=false
+NFLOGIPAC_ENABLE=true
 
 NFLOGIPAC_CONFIG=/etc/nflogipac/nflogipac.conf

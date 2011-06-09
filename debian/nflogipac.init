@@ -24,6 +24,9 @@ PIDFILE=/var/run/$NAME.pid
 SCRIPTNAME=/etc/init.d/$NAME
 
 # Exit if the package is not installed
+# According to LSB we should be returning 5 (program not installed).
+# http://refspecs.freestandards.org/LSB_3.1.0/LSB-Core-generic/LSB-Core-generic/iniscrptact.html
+# Debian policy overrides this to be 0.
 [ -x "$DAEMON" ] || exit 0
 
 # Read configuration variable file if it is present
@@ -39,7 +42,9 @@ SCRIPTNAME=/etc/init.d/$NAME
 test "$NFLOGIPAC_ENABLE" = "true" || exit 0
 if ! test -f "$NFLOGIPAC_CONFIG"; then
 	log_failure_msg "Cannot find configuration $NFLOGIPAC_CONFIG."
-	exit 1
+	# According to LSB we should be returning 6 (program not configured).
+	# However that would make the postinst of the Debian package fail.
+	exit 0
 fi
 
 

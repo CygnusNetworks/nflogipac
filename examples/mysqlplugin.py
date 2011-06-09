@@ -5,6 +5,7 @@ import os
 from nflogipac.plugins import AddressFormatter
 import syslog
 import socket
+import traceback
 
 class LaggyMySQLdb:
 	def __init__(self, dbconf, config):
@@ -126,8 +127,7 @@ class backend:
 
 	def account(self, group, addr, value):
 		self.create_current_table(group)
-		query = "INSERT INTO %s %s;" % (self.current_tables[group],
-				self.groups[group]["insert"].replace("?", "%s"))
+		query = "INSERT INTO %s %s;" % (self.current_tables[group],self.groups[group]["insert"].replace("?", "%s"))
 		parammap = dict(pid=os.getpid(), hostname=socket.gethostname(),
 				address=addr, value=value)
 		params = self.groups[group]["insert_params"]
@@ -143,37 +143,44 @@ class backend:
 
 class plugin:
 	def __init__(self, config):
-		self.queue_size_warn = int(config["main"]["queue_size_warn"])
-		self.queue_age_warn = int(config["main"]["queue_age_warn"])
-		self.formatter = AddressFormatter(config)
-		self.backends = []
-		for dbname, dbconf in config["databases"].items():
-			if dbname.starts_with("traffic_"):
-				useriddbconf = config["databases"].get("userid_" % dbname[8:])
-				self.backends.append(backend(dbconf, config, useriddbconf))
+		try:
+			self.queue_size_warn = int(config["main"]["queue_size_warn"])
+			self.queue_age_warn = int(config["main"]["queue_age_warn"])
+			self.formatter = AddressFormatter(config)
+			self.backends = []
+			for dbname, dbconf in config["databases"].items():
+				if dbname.startswith("traffic_"):
+					useriddbconf = config["databases"].get("userid_" % dbname[8:])
+					self.backends.append(backend(dbconf, config, useriddbconf))
+		except Exception,e:
+			syslog.syslog(syslog.LOG_ERR, "Plugin failed to initialize. Error in __init__ Exception %s Traceback %s" % (e,traceback.format_exc(sys.exc_info()[2]).replace("\n", " ### ")))
+			sys.exit(1)
 
 	def run(self, queue):
 		while True:
-			qsize = queue.qsize()
-			if qsize > self.queue_size_warn:
-				syslog.syslog(syslog.LOG_WARNING, ("queue contains at least " +
-						"%d entries") % qsize)
-			entry = queue.get()
-			if entry[0] == "terminate":
-				return
-			elif entry[0] == "start_write":
-				for backend in self.backends:
-					backend.start_write()
-			elif entry[0] == "account":
-				timestamp, group, addr, value = entry[1:]
-				queue_age = time.time() - timestamp
-				if queue_age > self.queue_age_warn:
-					syslog.syslog(syslog.LOG_WARNING, "processing of queue " +
-							"lacks behind for at least %d seconds" % queue_age)
-				for backend in self.backends:
-					backend.account(group, self.formatter(group, addr), value)
-			elif entry[0] == "end_write":
-				for backend in self.backends:
-					backend.end_write()
-
+			try:
+				qsize = queue.qsize()
+				if qsize > self.queue_size_warn:
+					syslog.syslog(syslog.LOG_WARNING, ("queue contains at least " +
+							"%d entries") % qsize)
+				entry = queue.get()
+				if entry[0] == "terminate":
+					return
+				elif entry[0] == "start_write":
+					for backend in self.backends:
+						backend.start_write()
+				elif entry[0] == "account":
+					timestamp, group, addr, value = entry[1:]
+					queue_age = time.time() - timestamp
+					if queue_age > self.queue_age_warn:
+						syslog.syslog(syslog.LOG_WARNING, "processing of queue " +
+								"lacks behind for at least %d seconds" % queue_age)
+					for backend in self.backends:
+						backend.account(group, self.formatter(group, addr), value)
+				elif entry[0] == "end_write":
+					for backend in self.backends:
+						backend.end_write()
+			except Exception,e:
+				syslog.syslog(syslog.LOG_ERR, "Plugin failed to initialize. Error in __init__ Exception %s Traceback %s" % (e,traceback.format_exc(sys.exc_info()[2]).replace("\n", " ### ")))
+				sys.exit(1)
 # vim:ts=4 sw=4

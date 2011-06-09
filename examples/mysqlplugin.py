@@ -6,18 +6,15 @@ from nflogipac.plugins import AddressFormatter
 import syslog
 import socket
 
-class backend:
+class LaggyMySQLdb:
 	def __init__(self, dbconf, config):
 		self.dbconf = dbconf
 		self.config = config
 		self.db = None
 		self.cursor = None
-		self.groups = dict((int(key), value) for key, value
-				in config["groups"].items())
-		self.current_tables = {}
 
-	def do_connect(self):
-		self.do_close()
+	def connect(self):
+		self.close()
 		self.db = MySQLdb.connect(
 				host=self.dbconf["host"],
 				db=self.dbconf["db"],
@@ -26,7 +23,7 @@ class backend:
 				cursorclass=MySQLdb.cursors.DictCursor)
 		self.cursor = self.db.cursor()
 
-	def do_close(self):
+	def close(self):
 		if self.cursor:
 			self.cursor.close()
 			self.cursor = None
@@ -34,10 +31,10 @@ class backend:
 			self.db.close()
 			self.db = None
 
-	def do_reconnect(self):
+	def reconnect(self):
 		for _ in range(int(self.config["main"]["reconnect_attempts"])):
 			try:
-				return self.do_connect()
+				return self.connect()
 			except MySQLdb.OperationalError, error:
 				if error.args[0] != 2003: # Can't connect to MySQL server on ...
 					raise # no clue what to do
@@ -45,7 +42,13 @@ class backend:
 				# implicit continue
 		raise MySQLdb.OperationalError(2003)
 
-	def do_query(self, query, params):
+	def query(self, query, params):
+		"""
+		@type query: str
+		@type params: tuple
+		@rtype: list
+		@raises MySQLdb.OperationalError
+		"""
 		for _ in range(int(self.config["main"]["query_attempts"])):
 			try:
 				self.cursor.execute(query, params)
@@ -53,11 +56,17 @@ class backend:
 			except MySQLdb.OperationalError, error:
 				if error.args[0] != 2006: # MySQL server has gone away
 					raise # no clue what to do
-				self.do_reconnect()
+				self.reconnect()
 				# implicit continue
 		raise MySQLdb.OperationalError(2006)
 
-	def do_modify(self, query, params):
+	def execute(self, query, params):
+		"""
+		@type query: str
+		@type params: tuple
+		@returns: None
+		@raises MySQLdb.OperationalError
+		"""
 		for _ in range(int(self.config["main"]["query_attempts"])):
 			try:
 				self.cursor.execute(query, params)
@@ -66,9 +75,17 @@ class backend:
 			except MySQLdb.OperationalError, error:
 				if error.args[0] != 2006: # MySQL server has gone away
 					raise # no clue what to do
-				self.do_reconnect()
+				self.reconnect()
 				# implicit continue
 		raise MySQLdb.OperationalError(2006)
+
+class backend:
+	def __init__(self, dbconf, config):
+		self.config = config
+		self.db = LaggyMySQLdb(dbconf, config)
+		self.groups = dict((int(key), value) for key, value
+				in config["groups"].items())
+		self.current_tables = {}
 
 	def create_current_table(self, group):
 		table_name = self.groups[group]["table_prefix"] + \
@@ -78,7 +95,7 @@ class backend:
 			return
 		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name,
 				self.groups[group]["create_table"])
-		self.do_modify(query, ())
+		self.db.execute(query, ())
 		self.current_tables[group] = table_name
 
 	def lookup_userid(self, group, addr):
@@ -87,14 +104,14 @@ class backend:
 		parammap = dict(group=group, address=addr)
 		params = self.config["main"]["userid_query_params"]
 		params = list(map(parammap.__getitem__, params))
-		rows = self.do_query(query, params)
+		rows = self.db.query(query, params)
 		try:
 			return rows[0]["userid"]
 		except IndexError: # no rows returned
 			return None # results in a NULL value
 
 	def start_write(self):
-		self.do_reconnect()
+		self.db.connect()
 
 	def account(self, group, addr, value):
 		self.create_current_table(group)
@@ -106,10 +123,10 @@ class backend:
 		if "userid" in params:
 			parammap["userid"] = self.lookup_userid(group, addr)
 		params = list(map(parammap.__getitem__, params))
-		self.do_modify(query, params)
+		self.db.execute(query, params)
 
 	def end_write(self):
-		self.do_close()
+		self.db.close()
 
 class plugin:
 	def __init__(self, config):

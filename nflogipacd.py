@@ -347,15 +347,21 @@ def main():
 		print("Usage: %s <configfile>" % sys.argv[0])
 		sys.exit(1)
 
-	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec,
-			file_error=True)
+	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec,file_error=True)
 	for section_list, key, error in configobj.flatten_errors(config,
 			config.validate(validate.Validator())):
 		raise ValueError("failed to validate %s in section %s" %
 				(key, ", ".join(section_list)))
 
-	plugin = imp.load_source("__plugin__",
-			config["main"]["plugin"]).plugin(config)
+	syslog.openlog("nflogipacd", syslog.LOG_PID,syslog_facilities[config["main"]["syslog_facility"]])
+	syslog.syslog(syslog.LOG_NOTICE, "started")
+	syslog.syslog(syslog.LOG_DEBUG, "Loading plugin %s" % config["main"]["plugin"])
+	try:
+		plugin = imp.load_source("__plugin__",config["main"]["plugin"]).plugin(config)
+	except Exception, msg:
+		syslog.syslog(syslog.LOG_ERR, "Failed to load plugin %s. Error: %s" % (config["main"]["plugin"],msg))
+		sys.exit(1)
+		
 	wt = WriteThread(plugin)
 	gt = GatherThread(int(config["main"]["interval"]), wt)
 	for group, cfg in config["groups"].items():
@@ -370,12 +376,11 @@ def main():
 	signal.signal(signal.SIGTERM, handle_sigterm)
 	signal.signal(signal.SIGHUP, handle_sighup)
 	signal.signal(signal.SIGCHLD, lambda *_: gt.handle_sigchld())
-	syslog.openlog("nflogipac", syslog.LOG_PID,
-			syslog_facilities[config["main"]["syslog_facility"]])
-	syslog.syslog(syslog.LOG_NOTICE, "started")
 
+	# Starting write thread
 	wt.start()
 	try:
+		# Starting gather thread
 		gt.run()
 	finally:
 		syslog.syslog(syslog.LOG_NOTICE, "gather thread stopped")

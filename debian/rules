@@ -3,6 +3,15 @@ export PREFIX=/usr
 %:
 	dh $@
 
+binary-arch:
+	dh $@ --until dh_installexamples
+	for f in debian/nflogipac/usr/share/doc/nflogipac/examples/*.conf; do \
+		sed -i 's|^\(plugin *= *"\)\./examples|\1/usr/lib/nflogipac|' \
+		$$f; done
+	dh $@ --remaining
+
+binary:binary-arch
+
 clean:
 	dh $@
 	rm -f debian/debhelper.log

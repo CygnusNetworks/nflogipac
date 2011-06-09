@@ -1,3 +1,2 @@
 examples/setup-iptables.sh
 examples/*.conf
-examples/*.py

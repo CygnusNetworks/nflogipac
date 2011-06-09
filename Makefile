@@ -48,6 +48,12 @@ install:nfnetlink_log_ctl nflogipacd nfnetlink_log_ctl.1.gz
 	install -m644 nfnetlink_log_ctl.1.gz \
 		${DESTDIR}${MANDIR}/man1/nfnetlink_log_ctl.1.gz
 	install -m755 nflogipacd.py ${DESTDIR}${SBINDIR}/nflogipacd.py
+	install -m644 examples/debugplugin.py \
+		${DESTDIR}${LIBDIR}/nflogipac/debugplugin.py
+	install -m644 examples/mysqlplugin.py \
+		${DESTDIR}${LIBDIR}/nflogipac/mysqlplugin.py
+	install -m644 examples/spawnplugin.py \
+		${DESTDIR}${LIBDIR}/nflogipac/spawnplugin.py
 	python not_setup.py install $(if ${DESTDIR},--root=${DESTDIR}) --prefix=${PREFIX}
 
 nfnetlink_log_ctl:nfnetlink_log_ctl.o

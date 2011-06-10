@@ -180,7 +180,7 @@ class plugin:
 		self.backends = []
 
 		employ_userid = any("userid" in groupconf["insert_params"]
-				for groupconf in config["groups"].items())
+				for groupconf in config["groups"].values())
 		if "userid_query" not in config["main"] and employ_userid:
 			log.log_err("Some inserts statements employ userid, but the main " +
 				"section is lacking a userid_query.")
@@ -196,7 +196,7 @@ class plugin:
 						dbname, 3)
 				useriddbname = "userid_%s" % dbname[len(TRAFFIC_DB_START):]
 				useriddb = None
-				if employ_userid and useriddbname in config["database"]:
+				if employ_userid and useriddbname in config["databases"]:
 					useriddb = LaggyMySQLdb(config, useriddbname, log)
 					log.log_debug("Found database for userid information")
 				elif config["main"].has_key("userid_query"):

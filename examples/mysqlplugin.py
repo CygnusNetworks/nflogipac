@@ -226,7 +226,6 @@ class plugin:
 				if queue_age > self.queue_age_warn:
 					self.log.log_warning("processing of queue lacks behind " +
 						"for at least %d seconds" % queue_age)
-				#FIXME: if backend fails due to mysql error, this should completely terminate nflogipac, for example a bad SQL quey
 				for backend in self.backends:
 					backend.account(group, self.formatter(group, addr), value)
 			elif entry[0] == "end_write":

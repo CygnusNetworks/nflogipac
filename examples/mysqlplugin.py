@@ -150,9 +150,9 @@ class backend:
 			return None # results in a NULL value
 
 	def start_write(self):
-		self.db.connect()
+		self.db.reconnect()
 		if self.useriddb is not None:
-			self.useriddb.connect()
+			self.useriddb.reconnect()
 
 	def account(self, group, addr, value):
 		self.create_current_table(group)

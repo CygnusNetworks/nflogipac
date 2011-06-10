@@ -361,6 +361,8 @@ def main():
 		plugin = imp.load_source("__plugin__",config["main"]["plugin"]).plugin(config)
 	except Exception, msg:
 		syslog.syslog(syslog.LOG_ERR, "Failed to load plugin %s. Error: %s" % (config["main"]["plugin"],msg))
+		for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
+			syslog.syslog(syslog.LOG_ERR, line)
 		sys.exit(1)
 		
 	wt = WriteThread(plugin)

@@ -181,31 +181,27 @@ class plugin:
 			sys.exit(1)
 
 	def run(self, queue):
-		try:
-			while True:
-					qsize = queue.qsize()
-					if qsize > self.queue_size_warn:
-						syslog.syslog(syslog.LOG_WARNING, ("queue contains at least " +
-								"%d entries") % qsize)
-					entry = queue.get()
-					if entry[0] == "terminate":
-						return
-					elif entry[0] == "start_write":
-						for backend in self.backends:
-							backend.start_write()
-					elif entry[0] == "account":
-						timestamp, group, addr, value = entry[1:]
-						queue_age = time.time() - timestamp
-						if queue_age > self.queue_age_warn:
-							syslog.syslog(syslog.LOG_WARNING, "processing of queue " +
-									"lacks behind for at least %d seconds" % queue_age)
-						#FIXME: if backend fails due to mysql error, this should completely terminate nflogipac, for example a bad SQL quey
-						for backend in self.backends:
-							backend.account(group, self.formatter(group, addr), value)
-					elif entry[0] == "end_write":
-						for backend in self.backends:
-							backend.end_write()
-		except Exception,e:
-			syslog.syslog(syslog.LOG_ERR, "Plugin failed to initialize. Error in __init__ Exception %s Traceback %s" % (e,traceback.format_exc(sys.exc_info()[2]).replace("\n", " ### ")))
-			sys.exit(1)
+		while True:
+				qsize = queue.qsize()
+				if qsize > self.queue_size_warn:
+					syslog.syslog(syslog.LOG_WARNING, ("queue contains at least " +
+							"%d entries") % qsize)
+				entry = queue.get()
+				if entry[0] == "terminate":
+					return
+				elif entry[0] == "start_write":
+					for backend in self.backends:
+						backend.start_write()
+				elif entry[0] == "account":
+					timestamp, group, addr, value = entry[1:]
+					queue_age = time.time() - timestamp
+					if queue_age > self.queue_age_warn:
+						syslog.syslog(syslog.LOG_WARNING, "processing of queue " +
+								"lacks behind for at least %d seconds" % queue_age)
+					#FIXME: if backend fails due to mysql error, this should completely terminate nflogipac, for example a bad SQL quey
+					for backend in self.backends:
+						backend.account(group, self.formatter(group, addr), value)
+				elif entry[0] == "end_write":
+					for backend in self.backends:
+						backend.end_write()
 # vim:ts=4 sw=4

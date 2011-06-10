@@ -318,6 +318,7 @@ class WriteThread(threading.Thread):
 					(type(exc).__name__, str(exc)))
 			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 				syslog.syslog(syslog.LOG_ERR, line)
+			os._exit(1)
 		# The plugin is now finished or it died. There is no point in keeping
 		# things going, so we terminate *all* threads now.
 		os._exit(0)

@@ -178,27 +178,33 @@ class plugin:
 		self.queue_age_warn = int(config["main"]["queue_age_warn"])
 		self.formatter = AddressFormatter(config)
 		self.backends = []
+
+		employ_userid = any("userid" in groupconf["insert_params"]
+				for groupconf in config["groups"].items())
+		if "userid_query" not in config["main"] and employ_userid:
+			log.log_err("Some inserts statements employ userid, but the main " +
+				"section is lacking a userid_query.")
+			raise ValueError("userid_query missing in main config section")
+		elif "userid_query" in config["main"] and not employ_userid:
+			log.log_warning("The main config sections has an unused " +
+					"userid_query.")
+
 		for dbname in config["databases"]:
 			if dbname.startswith(TRAFFIC_DB_START):
 				trafficdb = LaggyMySQLdb(config, dbname, log)
 				log.log_debug("Found database %s for traffic information" %
 						dbname, 3)
 				useriddbname = "userid_%s" % dbname[len(TRAFFIC_DB_START):]
-				if useriddbname in config["databases"]:
+				useriddb = None
+				if employ_userid and useriddbname in config["database"]:
 					useriddb = LaggyMySQLdb(config, useriddbname, log)
-				else:
-					useriddb = None
-				#FIXME: do basic checking. If a userid_query is given, userid should be present in queries
-				#generate error and exit
-				if useriddb:
 					log.log_debug("Found database for userid information")
-				else:
-					if config["main"].has_key("userid_query"):
-						log.log_err(("Not using any userid database since no " +
+				elif config["main"].has_key("userid_query"):
+					log.log_notice(("Not using any userid database since no " +
 							"database definition %s could be found") %
 							useriddbname)
-					else:
-						log.log_debug("Not using any userid database", 3)
+				else:
+					log.log_debug("Not using any userid database", 3)
 						
 				self.backends.append(backend(config, trafficdb, useriddb))
 

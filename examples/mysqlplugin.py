@@ -3,10 +3,8 @@ import MySQLdb
 import MySQLdb.cursors
 import os
 from nflogipac.plugins import AddressFormatter
-import sys
 import syslog
 import socket
-import traceback
 
 TRAFFIC_DB_START="traffic_"
 

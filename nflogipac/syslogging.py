@@ -118,6 +118,13 @@ class Syslogging(object):
 		"""
 		self.log_generic(syslog.LOG_WARNING,message)
 
+	def log_notice(self, message):
+		"""Logs a notice message
+		@param message: Message to be logged
+		@type message: str
+		"""
+		self.log_generic(syslog.LOG_NOTICE, message)
+
 	def log_info(self,message):
 		"""Logs a info message
 		@param message: Message to be logged

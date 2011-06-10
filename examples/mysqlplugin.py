@@ -3,21 +3,23 @@ import MySQLdb
 import MySQLdb.cursors
 import os
 from nflogipac.plugins import AddressFormatter
-import syslog
 import socket
 
 TRAFFIC_DB_START="traffic_"
 
 
 class LaggyMySQLdb:
-	def __init__(self, dbconf, config):
-		self.dbconf = dbconf
+	def __init__(self, config, name, log):
 		self.config = config
+		self.name = name
+		self.log = log
+		self.dbconf = config["databases"][name]
 		self.db = None
 		self.cursor = None
 
 	def connect(self):
 		self.close()
+		self.log.log_debug("Trying to connect to db %s." % self.name, 4)
 		self.db = MySQLdb.connect(
 				host=self.dbconf["host"],
 				db=self.dbconf["db"],
@@ -25,24 +27,31 @@ class LaggyMySQLdb:
 				passwd=self.dbconf["password"],
 				cursorclass=MySQLdb.cursors.DictCursor)
 		self.cursor = self.db.cursor()
+		self.log.log_debug("Connected to db %s." % self.name, 4)
 
 	def close(self):
 		if self.cursor:
 			self.cursor.close()
 			self.cursor = None
 		if self.db:
+			self.log.log_debug("Closing connection to db %s." % self.name, 5)
 			self.db.close()
 			self.db = None
 
 	def reconnect(self):
-		for _ in range(int(self.config["main"]["reconnect_attempts"])):
+		for i in range(int(self.config["main"]["reconnect_attempts"])):
 			try:
 				return self.connect()
 			except MySQLdb.OperationalError, error:
 				if error.args[0] != 2003: # Can't connect to MySQL server on ...
+					self.log.log_err("Recieved MySQLdb.OperationalError while" +
+							" connecting to %s: %r" % (self.name, error))
 					raise # no clue what to do
+				self.log.log_warning("Connection attempt %d to db %s failed." %
+						(i, self.name))
 				time.sleep(int(self.config["main"]["reconnect_interval"]))
 				# implicit continue
+		self.log.log_error("Giving connecting to db %s." % self.name)
 		raise MySQLdb.OperationalError(2003)
 
 	def query(self, query, params):
@@ -52,15 +61,24 @@ class LaggyMySQLdb:
 		@rtype: list
 		@raises MySQLdb.OperationalError
 		"""
-		for _ in range(int(self.config["main"]["query_attempts"])):
+		for i in range(int(self.config["main"]["query_attempts"])):
+			self.log.log_debug("Querying db %s with %r %r attempt %d" %
+					(self.name, query, params, i), 8)
 			try:
 				self.cursor.execute(query, params)
 				return self.cursor.fetchall()
 			except MySQLdb.OperationalError, error:
 				if error.args[0] != 2006: # MySQL server has gone away
+					self.log.log_err("Recieved MySQLdb.OperationalError while" +
+							" querying %s for %r %r: %r" %
+							(self.name, query, params, error))
 					raise # no clue what to do
+				self.log.log_warning(("MySQL server %s has gone away during " +
+					"query %r %r attempt %d") % (self.name, query, params, i))
 				self.reconnect()
 				# implicit continue
+		self.log.log_error("Giving up querying %s for %r %r." %
+				(self.name, query, params))
 		raise MySQLdb.OperationalError(2006)
 
 	def execute(self, query, params):
@@ -70,30 +88,38 @@ class LaggyMySQLdb:
 		@returns: None
 		@raises MySQLdb.OperationalError
 		"""
-		for _ in range(int(self.config["main"]["query_attempts"])):
+		for i in range(int(self.config["main"]["query_attempts"])):
+			self.log.log_debug("Executing db %s with %r %r attempt %d" %
+					(self.name, query, params, i), 8)
 			try:
 				self.cursor.execute(query, params)
 				self.db.commit()
 				return
 			except MySQLdb.OperationalError, error:
 				if error.args[0] != 2006: # MySQL server has gone away
+					self.log.log_err("Recieved MySQLdb.OperationalError while" +
+							" executing %r %r on %s: %r" %
+							(query, params, self.name, error))
 					raise # no clue what to do
+				self.log.log_warning(("MySQL server %s has gone away during " +
+						"execute %r %r attempt %d") %
+						(self.name, query, params, i))
 				self.reconnect()
 				# implicit continue
+		self.log.log_error("Giving up executing %r %r on %s." %
+				(query, params, self.name))
 		raise MySQLdb.OperationalError(2006)
 
 class backend:
-	def __init__(self, dbconf, config, useriddbconf=None):
+	def __init__(self, config, trafficdb, useriddb=None):
 		self.config = config
-		self.db = LaggyMySQLdb(dbconf, config)
+		self.db = trafficdb
 		self.groups = dict((int(key), value) for key, value
 				in config["groups"].items())
 		self.current_tables = {}
-		if useriddbconf is not None and \
-				any("userid" in groupconf["insert_params"] \
+		self.useriddb = useriddb
+		if all("userid" not in groupconf["insert_params"] \
 					for groupconf in self.groups.values()):
-			self.useriddb = LaggyMySQLdb(useriddbconf, config)
-		else:
 			self.useriddb = None
 
 	def create_current_table(self, group):
@@ -104,8 +130,6 @@ class backend:
 			return
 		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name,
 				self.groups[group]["create_table"])
-		#FIXME: add if debug
-		syslog.syslog(syslog.LOG_DEBUG, "Executing create table query %s" % (query))
 
 		self.db.execute(query, ())
 		self.current_tables[group] = table_name
@@ -116,8 +140,6 @@ class backend:
 		parammap = dict(group=group, address=addr)
 		params = self.config["main"]["userid_query_params"]
 		params = list(map(parammap.__getitem__, params))
-		#FIXME: add if debug
-		syslog.syslog(syslog.LOG_DEBUG, "Executing userdb query %s with params %s" % (repr(query),repr(params)))
 		if self.useriddb is not None:
 			rows = self.useriddb.query(query, params)
 		else:
@@ -141,8 +163,6 @@ class backend:
 		if "userid" in params:
 			parammap["userid"] = self.lookup_userid(group, addr)
 		params = list(map(parammap.__getitem__, params))
-		#FIXME: add if debug
-		syslog.syslog(syslog.LOG_DEBUG, "Executing query %s with params %s" % (repr(query),repr(params)))
 
 		self.db.execute(query, params)
 
@@ -152,33 +172,42 @@ class backend:
 		self.db.close()
 
 class plugin:
-	def __init__(self, config):
+	def __init__(self, config, log):
+		self.log = log
 		self.queue_size_warn = int(config["main"]["queue_size_warn"])
 		self.queue_age_warn = int(config["main"]["queue_age_warn"])
 		self.formatter = AddressFormatter(config)
 		self.backends = []
-		for dbname, dbconf in config["databases"].items():
+		for dbname in config["databases"]:
 			if dbname.startswith(TRAFFIC_DB_START):
-				syslog.syslog(syslog.LOG_DEBUG, "Found database %s for traffic information" % dbname)
-				useriddbconf = config["databases"].get("userid_%s" % dbname[len(TRAFFIC_DB_START):])
+				trafficdb = LaggyMySQLdb(config, dbname, log)
+				log.log_debug("Found database %s for traffic information" %
+						dbname, 3)
+				useriddbname = "userid_%s" % dbname[len(TRAFFIC_DB_START):]
+				if useriddbname in config["databases"]:
+					useriddb = LaggyMySQLdb(config, useriddbname, log)
+				else:
+					useriddb = None
 				#FIXME: do basic checking. If a userid_query is given, userid should be present in queries
 				#generate error and exit
-				if useriddbconf:
-					syslog.syslog(syslog.LOG_DEBUG, "Found database for userid information")
+				if useriddb:
+					log.log_debug("Found database for userid information")
 				else:
 					if config["main"].has_key("userid_query"):
-						syslog.syslog(syslog.LOG_ERR, "Not using any userid database since no database definition userid_%s could be found" % dbname[len(TRAFFIC_DB_START):])
+						log.log_err(("Not using any userid database since no " +
+							"database definition %s could be found") %
+							useriddbname)
 					else:
-						syslog.syslog(syslog.LOG_DEBUG, "Not using any userid database")
+						log.log_debug("Not using any userid database", 3)
 						
-				self.backends.append(backend(dbconf, config, useriddbconf))
+				self.backends.append(backend(config, trafficdb, useriddb))
 
 	def run(self, queue):
 		while True:
 			qsize = queue.qsize()
 			if qsize > self.queue_size_warn:
-				syslog.syslog(syslog.LOG_WARNING, ("queue contains at least " +
-						"%d entries") % qsize)
+				self.log.log_warning("queue contains at least %d entries" %
+						qsize)
 			entry = queue.get()
 			if entry[0] == "terminate":
 				return
@@ -189,8 +218,8 @@ class plugin:
 				timestamp, group, addr, value = entry[1:]
 				queue_age = time.time() - timestamp
 				if queue_age > self.queue_age_warn:
-					syslog.syslog(syslog.LOG_WARNING, "processing of queue " +
-							"lacks behind for at least %d seconds" % queue_age)
+					self.log.log_warning("processing of queue lacks behind " +
+						"for at least %d seconds" % queue_age)
 				#FIXME: if backend fails due to mysql error, this should completely terminate nflogipac, for example a bad SQL quey
 				for backend in self.backends:
 					backend.account(group, self.formatter(group, addr), value)

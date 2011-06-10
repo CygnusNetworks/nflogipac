@@ -18,6 +18,7 @@ import traceback
 import fcntl
 import errno
 from nflogipac.asynschedcore import asynschedcore, periodic
+from nflogipac.syslogging import SysloggingDebugLevel
 
 try:
 	from nflogipac.paths import nflogipacd as nflogipacd_path
@@ -193,13 +194,14 @@ class ReportingCounter(Counter):
 		self.lossfunc(timestamp, self.group, count)
 
 class GatherThread(threading.Thread):
-	def __init__(self, pinginterval, wt):
+	def __init__(self, pinginterval, wt, log):
 		"""
 		@type pinginterval: int
 		@type wt: WriteThread
 		"""
 		threading.Thread.__init__(self)
 		self.wt = wt
+		self.log = log
 		self.asc = asynschedcore({})
 		self.periodic = periodic(self.asc, pinginterval, 0, self.periodically)
 		self.counters = {}
@@ -224,13 +226,13 @@ class GatherThread(threading.Thread):
 	def end_hook(self, group):
 		self.counters_working.remove(group)
 		if not self.counters_working:
-			syslog.syslog(syslog.LOG_DEBUG, "received end packet from all counters")
+			self.log.log_debug("received end packet from all counters", 1)
 			self.wt.end_write()
 		if self.terminating:
 			self.counters.pop(group).close()
 
 	def periodically(self):
-		syslog.syslog(syslog.LOG_DEBUG, "querying counters")
+		self.log.log_debug("querying counters", 2)
 		self.request_data()
 		if not self.counters:
 			self.periodic.stop()
@@ -259,11 +261,11 @@ class GatherThread(threading.Thread):
 			if counter.pid != pid:
 				continue
 			if self.terminating:
-				syslog.syslog(syslog.LOG_NOTICE, ("child pid:%d group:%d " +
-						"terminated") % (pid, group))
+				self.log.log_notice("child pid:%d group:%d terminated" %
+						(pid, group))
 			else:
-				syslog.syslog(syslog.LOG_ERR, ("child pid:%d group:%d " +
-						"unexpectedly died") % (pid, group))
+				self.log.log_err("child pid:%d group:%d unexpectedly died" %
+						(pid, group))
 			try:
 				self.counters_working.remove(group)
 			except KeyError:
@@ -290,10 +292,11 @@ class GatherThread(threading.Thread):
 				self.terminate()
 
 class WriteThread(threading.Thread):
-	def __init__(self, writeplugin):
+	def __init__(self, writeplugin, log):
 		threading.Thread.__init__(self)
 		self.queue = Queue.Queue()
 		self.writeplugin = writeplugin
+		self.log = log
 
 	def start_write(self):
 		self.queue.put(("start_write",))
@@ -314,10 +317,10 @@ class WriteThread(threading.Thread):
 		try:
 			self.writeplugin.run(self.queue)
 		except Exception, exc:
-			syslog.syslog(syslog.LOG_ERR, "Caught %s from plugin: %s" %
+			self.log.log_err("Caught %s from plugin: %s" %
 					(type(exc).__name__, str(exc)))
 			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
-				syslog.syslog(syslog.LOG_ERR, line)
+				self.log.log_err(line)
 			os._exit(1)
 		# The plugin is now finished or it died. There is no point in keeping
 		# things going, so we terminate *all* threads now.
@@ -337,6 +340,7 @@ config_spec = configobj.ConfigObj(("""
 plugin = string(min=1)
 interval = integer(min=1)
 syslog_facility = option(%(syslog_facilities)s, default='daemon')
+log_level = integer(min=0, max=10, default=3)
 [groups]
 [[__many__]]
 kind = string(min=1)
@@ -354,27 +358,30 @@ def main():
 		raise ValueError("failed to validate %s in section %s" %
 				(key, ", ".join(section_list)))
 
-	syslog.openlog("nflogipacd", syslog.LOG_PID,syslog_facilities[config["main"]["syslog_facility"]])
-	syslog.syslog(syslog.LOG_NOTICE, "started")
-	syslog.syslog(syslog.LOG_DEBUG, "Loading plugin %s" % config["main"]["plugin"])
+	log = SysloggingDebugLevel("nflogipacd", 
+		facility=syslog_facilities[config["main"]["syslog_facility"]],
+		log_level=config["main"]["log_level"])
+	log.log_notice("started")
+	log.log_debug("Loading plugin %s" % config["main"]["plugin"], 0)
 	try:
-		plugin = imp.load_source("__plugin__",config["main"]["plugin"]).plugin(config)
+		plugin = imp.load_source("__plugin__",config["main"]["plugin"]).plugin(config, log)
 	except Exception, msg:
-		syslog.syslog(syslog.LOG_ERR, "Failed to load plugin %s. Error: %s" % (config["main"]["plugin"],msg))
+		log.log_err("Failed to load plugin %s. Error: %s" %
+				(config["main"]["plugin"], msg))
 		for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
-			syslog.syslog(syslog.LOG_ERR, line)
+			log.log_err(line)
 		sys.exit(1)
 		
-	wt = WriteThread(plugin)
-	gt = GatherThread(int(config["main"]["interval"]), wt)
+	wt = WriteThread(plugin, log)
+	gt = GatherThread(int(config["main"]["interval"]), wt, log)
 	for group, cfg in config["groups"].items():
 		gt.add_counter(int(group), cfg["kind"])
 
 	def handle_sigterm(*_):
-		syslog.syslog(syslog.LOG_NOTICE, "received SIGTERM")
+		log.log_notice("received SIGTERM")
 		gt.terminate()
 	def handle_sighup(*_):
-		syslog.syslog(syslog.LOG_NOTICE, "received SIGHUP")
+		log.log_notice("received SIGHUP")
 		gt.ping_now()
 	signal.signal(signal.SIGTERM, handle_sigterm)
 	signal.signal(signal.SIGHUP, handle_sighup)
@@ -386,9 +393,9 @@ def main():
 		# Starting gather thread
 		gt.run()
 	finally:
-		syslog.syslog(syslog.LOG_NOTICE, "gather thread stopped")
+		log.log_notice("gather thread stopped")
 		wt.terminate()
-		syslog.syslog(syslog.LOG_NOTICE, "storage thread stopped")
+		log.log_notice("storage thread stopped")
 
 if __name__ == '__main__':
 	main()

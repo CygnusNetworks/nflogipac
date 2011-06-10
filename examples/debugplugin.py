@@ -1,7 +1,7 @@
 from nflogipac.plugins import FormattingPlugin
 
 class plugin(FormattingPlugin):
-	def __init__(self, config):
+	def __init__(self, config, log):
 		FormattingPlugin.__init__(self, config)
 
 	def handle_formatted_account(self, timestamp, group, addr, value):

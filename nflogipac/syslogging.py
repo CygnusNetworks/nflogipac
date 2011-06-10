@@ -74,7 +74,8 @@ class Syslogging(object):
 		message=calling_prefix+"###"+message
 		
 		if level==syslog.LOG_ERR:
-			syslog.syslog(level,message)
+			if __debug__ and not self.quiet:
+				self.log_output("ERR", message)
 		elif level==syslog.LOG_WARNING:
 			if __debug__ and self.quiet==False:
 				self.log_output("WARNING",message)
@@ -88,7 +89,6 @@ class Syslogging(object):
 			if (__debug__) and (self.quiet==False):
 				self.log_output("UNKNOWN",message)				
 		syslog.syslog(level,message)
-		syslog.closelog()
 
 	def log_error(self,message):
 		"""Logs a error message

@@ -25,6 +25,12 @@ try:
 except ImportError: # running from source directory
 	nflogipacd_path = "./nflogipacd"
 
+try:
+	from setproctitle import setproctitle
+except ImportError, exc:
+	def setproctitle(_): # make this ImportError lazy
+		raise exc
+
 class FatalError(Exception):
 	"""Something very bad happend leading to program abort with a message."""
 
@@ -372,6 +378,13 @@ def main():
 			log.log_err(line)
 		sys.exit(1)
 		
+	if "proctitle" in config["main"]:
+		try:
+			setproctitle(config["main"]["proctitle"])
+		except ImportError:
+			log.log_err("setproctitle python module is not available")
+			sys.exit(1)
+
 	wt = WriteThread(plugin, log)
 	gt = GatherThread(int(config["main"]["interval"]), wt, log)
 	for group, cfg in config["groups"].items():

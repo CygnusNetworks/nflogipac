@@ -14,7 +14,7 @@ Package: nflogipac
 Architecture: any
 Depends: python-configobj, ${shlibs:Depends}, ${python:Depends}, ${misc:Depends}
 Recommends: iptables
-Suggests: python-mysqldb
+Suggests: python-mysqldb, python-setproctitle
 XB-Python-Version: ${python:Versions}
 Description: netfilter NFLOG based IP accounting daemon
  It allows IP based accounting of traffic that is matched by iptables rules.

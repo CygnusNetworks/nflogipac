@@ -1,6 +1,9 @@
 #!/bin/sh
 #
 # WARNING: THIS SCRIPT RESETS YOUR FIREWALL. USE AT YOUR OWN RISK.
+# The script will setup traffic accounting for forwarded traffic
+# (linux router) where eth0 is the WAN interface and eth1 the local
+# interface
 
 set -e
 
@@ -17,7 +20,7 @@ modprobe xt_NFLOG || true
 ./nfnetlink_log_ctl rebind AF_INET rebind AF_INET6
 
 # A bigger --nflog-threshold reduces the per packet overhead.
-iptables -A INPUT -j NFLOG --nflog-group 1 --nflog-threshold 1024
-iptables -A OUTPUT -j NFLOG --nflog-group 2 --nflog-threshold 1024
-ip6tables -A INPUT -j NFLOG --nflog-group 3 --nflog-threshold 1024
-ip6tables -A OUTPUT -j NFLOG --nflog-group 4 --nflog-threshold 1024
+iptables -A FORWARD -i eth0 -o eth1 -j NFLOG --nflog-group 1 --nflog-threshold 1024
+iptables -A FORWARD -o eth0 -i eth1 -j NFLOG --nflog-group 2 --nflog-threshold 1024
+ip6tables -A FORWARD -i eth0 -o eth1 -j NFLOG --nflog-group 3 --nflog-threshold 1024
+ip6tables -A FORWARD -o eth0 -i eth1 -j NFLOG --nflog-group 4 --nflog-threshold 1024

@@ -123,9 +123,13 @@ class backend:
 			self.useriddb = None
 
 	def create_current_table(self, group):
+		if self.config["main"].get("strftime_is_utc", "1").lower()[:1] in "0fn":
+			now = time.localtime()
+		else:
+			now = time.gmtime()
 		table_name = self.groups[group]["table_prefix"] + \
 				time.strftime(self.groups[group]["table_strftime"],
-						time.gmtime())
+						now)
 		if table_name == self.current_tables.get(group):
 			return
 		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name,

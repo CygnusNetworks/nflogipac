@@ -347,11 +347,46 @@ plugin = string(min=1)
 interval = integer(min=1)
 syslog_facility = option(%(syslog_facilities)s, default='daemon')
 log_level = integer(min=0, max=10, default=3)
+daemonize = boolean()
 [groups]
 [[__many__]]
 kind = string(min=1)
 """ % dict(syslog_facilities=", ".join(map(repr, syslog_facilities.keys()))
 	)).splitlines(), interpolation=False, list_values=False)
+
+def die(log, message):
+	log.log_err(message)
+	sys.stderr.write(message + "\n")
+	sys.exit(1)
+
+def daemonize(log):
+	rend, wend = os.pipe()
+	rend = os.fdopen(rend, "r")
+	wend = os.fdopen(wend, "w")
+	os.chdir("/")
+	devnull = os.open("/dev/null", os.O_RDWR)
+	os.dup2(devnull, 0)
+	os.dup2(devnull, 1)
+	# Redirect stderr later, so we can use it for die.
+	try:
+		if os.fork() > 0:
+			wend.close()
+			data = rend.read()
+			if data:
+				sys.stderr.write(data)
+				sys.exit(1)
+			sys.exit(0)
+	except OSError, e:
+		die(log, "first fork failed")
+	os.setsid()
+	try:
+		if os.fork() > 0:
+			sys.exit(0)
+	except OSError, e:
+		die(log, "second fork failed")
+	rend.close()
+	os.dup2(devnull, 2)
+	return wend
 
 def main():
 	if len(sys.argv) != 2:
@@ -367,23 +402,29 @@ def main():
 	log = SysloggingDebugLevel("nflogipacd", 
 		facility=syslog_facilities[config["main"]["syslog_facility"]],
 		log_level=config["main"]["log_level"])
+
+	if config["main"]["daemonize"]:
+		old_stderr = sys.stderr
+		sys.stderr = daemonize(log)
+
 	log.log_notice("started")
 	log.log_debug("Loading plugin %s" % config["main"]["plugin"], 0)
 	try:
 		plugin = imp.load_source("__plugin__",config["main"]["plugin"]).plugin(config, log)
-	except Exception, msg:
-		log.log_err("Failed to load plugin %s. Error: %s" %
-				(config["main"]["plugin"], msg))
+	except Exception, exc:
+		msg = "Failed to load plugin %s. Error: %s" % \
+				(config["main"]["plugin"], exc)
+		log.log_err(msg)
 		for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 			log.log_err(line)
+		sys.stderr.write(msg + "\n")
 		sys.exit(1)
 		
 	if "proctitle" in config["main"]:
 		try:
 			setproctitle(config["main"]["proctitle"])
 		except ImportError:
-			log.log_err("setproctitle python module is not available")
-			sys.exit(1)
+			die(log, "setproctitle python module is not available")
 
 	wt = WriteThread(plugin, log)
 	gt = GatherThread(int(config["main"]["interval"]), wt, log)
@@ -399,6 +440,10 @@ def main():
 	signal.signal(signal.SIGTERM, handle_sigterm)
 	signal.signal(signal.SIGHUP, handle_sighup)
 	signal.signal(signal.SIGCHLD, lambda *_: gt.handle_sigchld())
+
+	if config["main"]["daemonize"]:
+		sys.stderr.close() # parent terminates cleanly
+		sys.stderr = old_stderr
 
 	# Starting write thread
 	wt.start()

@@ -386,6 +386,8 @@ def daemonize(log):
 		die(log, "second fork failed")
 	rend.close()
 	os.dup2(devnull, 2)
+	pipeflags = fcntl.fcntl(2, fcntl.F_GETFD)
+	fcntl.fcntl(2, fcntl.F_SETFD, pipeflags | fcntl.FD_CLOEXEC)
 	return wend
 
 def main():

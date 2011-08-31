@@ -34,6 +34,10 @@ except ImportError, exc:
 class FatalError(Exception):
 	"""Something very bad happend leading to program abort with a message."""
 
+def set_close_on_exec(filedescriptor):
+	flags = fcntl.fcntl(filedescriptor, fcntl.F_GETFD)
+	fcntl.fcntl(filedescriptor, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+
 def create_counter(group, kind):
 	"""
 	@type group: int
@@ -49,8 +53,7 @@ def create_counter(group, kind):
 			parentsock.close()
 			os.close(parentpipe)
 			# close signals
-			pipeflags = fcntl.fcntl(childpipe, fcntl.F_GETFD)
-			fcntl.fcntl(childpipe, fcntl.F_SETFD, pipeflags | fcntl.FD_CLOEXEC)
+			set_close_on_exec(childpipe)
 			os.close(0)
 			os.close(1)
 			os.dup2(childsock.fileno(), 0)
@@ -386,8 +389,7 @@ def daemonize(log):
 		die(log, "second fork failed")
 	rend.close()
 	os.dup2(devnull, 2)
-	pipeflags = fcntl.fcntl(2, fcntl.F_GETFD)
-	fcntl.fcntl(2, fcntl.F_SETFD, pipeflags | fcntl.FD_CLOEXEC)
+	set_close_on_exec(wend)
 	return wend
 
 def main():

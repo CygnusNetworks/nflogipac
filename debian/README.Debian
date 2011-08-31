@@ -14,4 +14,5 @@ The default path to the configuration is /etc/nflogipac/nflogipac.conf and can
 be changed in /etc/default/nflogipac. Examples for configurations can be found
 in /usr/share/doc/nflogipac/examples/*.conf. For further details on configuring
 the daemon see /usr/share/doc/nflogipac/README and
-/usr/share/doc/nflogipac/plugins.txt.
+/usr/share/doc/nflogipac/plugins.txt. Note that the init script assumes that
+you set daemonize = True and pidfile = /var/run/nflogipac.pid.

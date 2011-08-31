@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from __future__ import with_statement
 import struct
 import time
 import os
@@ -351,6 +352,7 @@ interval = integer(min=1)
 syslog_facility = option(%(syslog_facilities)s, default='daemon')
 log_level = integer(min=0, max=10, default=3)
 daemonize = boolean()
+pidfile = string(min=0)
 [groups]
 [[__many__]]
 kind = string(min=1)
@@ -445,6 +447,13 @@ def main():
 	signal.signal(signal.SIGHUP, handle_sighup)
 	signal.signal(signal.SIGCHLD, lambda *_: gt.handle_sigchld())
 
+	if config["main"]["pidfile"]:
+		try:
+			with file(config["main"]["pidfile"], "w") as pidfile:
+				pidfile.write("%d\n" % os.getpid())
+		except IOError, err:
+			die(log, "failed to write pidfile: %r" % err)
+
 	if config["main"]["daemonize"]:
 		sys.stderr.close() # parent terminates cleanly
 		sys.stderr = old_stderr
@@ -455,6 +464,11 @@ def main():
 		# Starting gather thread
 		gt.run()
 	finally:
+		if config["main"]["pidfile"]:
+			try:
+				os.unlink(config["main"]["pidfile"])
+			except OSError:
+				pass # ignore
 		log.log_notice("gather thread stopped")
 		wt.terminate()
 		log.log_notice("storage thread stopped")

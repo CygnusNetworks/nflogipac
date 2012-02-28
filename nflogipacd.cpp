@@ -62,7 +62,7 @@ class nflogipac_counter {
 		unsigned int packets_lost;
 	public:
 		const size_t caplen;
-		nflogipac_counter(size_t cl) : caplen(cl) {}
+		nflogipac_counter(size_t cl) : packets_lost(0), caplen(cl) {}
 		/**
 		 * Account a given packet.
 		 * @param payload is a buffer of precisely caplen bytes

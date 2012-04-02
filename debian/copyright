@@ -8,3 +8,9 @@ Copyright: 2011 Cygnus Networks GmbH
 License: GPL-3
  On Debian systems the full license text can be found at
  /usr/share/common-licenses/GPL-3.
+
+Files: examples/postgresql*
+Copyright: 2011-2012 Cygnus Networks GmbH, 2011 Daniel Meißner <dm@3st.be>
+License: GPL-3
+ On Debian systems the full license text can be found at
+ /usr/share/common-licenses/GPL-3.

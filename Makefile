@@ -1,10 +1,10 @@
 CC = gcc
-CFLAGS = -W -Wall -Wextra -pedantic -ansi
+CFLAGS ?= -W -Wall -Wextra -pedantic -ansi
 CXX = g++
-CXXFLAGS = -W -Wall -Wextra -pedantic -O2
+CXXFLAGS ?= -W -Wall -Wextra -pedantic -O2
 LIBS = -lnetfilter_log
 BOOST_LIBS = -lboost_thread
-GZIP=gzip
+GZIP ?= gzip
 PREFIX ?= /usr/local
 SBINDIR ?= ${PREFIX}/sbin
 MANDIR ?= ${PREFIX}/share/man
@@ -55,13 +55,14 @@ install:nfnetlink_log_ctl nflogipacd nfnetlink_log_ctl.1.gz
 		${DESTDIR}${LIBDIR}/nflogipac/mysqlplugin.py
 	install -m644 examples/spawnplugin.py \
 		${DESTDIR}${LIBDIR}/nflogipac/spawnplugin.py
-	python not_setup.py install $(if ${DESTDIR},--root=${DESTDIR}) --prefix=${PREFIX}
+	python not_setup.py install ${PYTHON_SETUP_INSTALL_FLAGS} \
+		$(if ${DESTDIR},--root=${DESTDIR}) --prefix=${PREFIX}
 
 nfnetlink_log_ctl:nfnetlink_log_ctl.o
-	${CC} ${CFLAGS} ${LIBS} $^ -o $@
+	${CC} ${CFLAGS} ${LDFLAGS} ${LIBS} $^ -o $@
 nfnetlink_log_ctl.o:nfnetlink_log_ctl.c
 nflogipacd:nflogipacd.o
-	${CXX} ${CXXFLAGS} ${LIBS} ${BOOST_LIBS} $^ -o $@
+	${CXX} ${CXXFLAGS} ${LDFLAGS} ${LIBS} ${BOOST_LIBS} $^ -o $@
 nflogipacd.o:nflogipacd.cpp
 nfnetlink_log_ctl.1.gz:nfnetlink_log_ctl.1
 

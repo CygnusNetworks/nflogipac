@@ -4,9 +4,9 @@ Building
 Dependencies: Linux 2.6, Python 2.5 or newer, Python configobj, boost::bind,
 boost::thread, libnetfilter-log, boost::tr1 (optional)
 
-If you want to compile with boost::tr1 (improves performance impact), you need
-to remove -DUSE_STANDARD_MAP from CXXFLAGS in the Makefile. On Debian systems
-boost libraries with version 1.40 or later are sufficient.
+If you want to compile without boost::tr1 (degrades performance), you need to
+add -DUSE_STANDARD_MAP to CXXFLAGS in the Makefile. On Debian systems boost
+libraries with version 1.40 or later are sufficient.
 
 $ make
 

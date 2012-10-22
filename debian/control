@@ -1,21 +1,20 @@
 Source: nflogipac
-Build-Depends: debhelper (>= 7),
+Build-Depends: debhelper (>= 8),
  libnetfilter-log-dev,
- libboost-dev (>= 1.35) | libboost1.35-dev,
- libboost-thread-dev (>= 1.35) | libboost-thread1.35-dev,
+ libboost-dev (>= 1.40),
+ libboost-thread-dev (>= 1.40),
  python
 Maintainer: Helmut Grohne <h.grohne@cygnusnetworks.de>
-Standards-Version: 3.9.1
+Standards-Version: 3.9.4
 Section: net
 Priority: extra
-XS-Python-Version: >= 2.5
+X-Python-Version: >= 2.5
 
 Package: nflogipac
 Architecture: any
 Depends: python-configobj, ${shlibs:Depends}, ${python:Depends}, ${misc:Depends}
 Recommends: iptables
-Suggests: python-mysqldb, python-setproctitle
-XB-Python-Version: ${python:Versions}
+Suggests: python-mysqldb, python-setproctitle, python-psycopg2
 Description: netfilter NFLOG based IP accounting daemon
  It allows IP based accounting of traffic that is matched by iptables rules.
  Instead of the ULOG the more recent NFLOG target is used. This allows

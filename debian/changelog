@@ -1,3 +1,30 @@
+nflogipac (0.3) unstable; urgency=low
+
+  * New upstream release:
+     + Push daemonizing into the application to show startup errors.
+     + Added plugin for postgresql.
+     + Plugin mysql now supports local time zone.
+     + Fixed Makefile dependency issue.
+     + Fixed missing initialization in C++ part.
+     + Require boost::tr1 by default.
+     + Support build customizations via CFLAGS, etc.
+  * Support /etc/init.d/nflogipac status.
+  * Bumped standards version to 3.9.4. No changes needed.
+  * Bumped debhelper version to 8.
+    + Updated debian/rules to use override_foo.
+    + No need to clean debhelper.log anymore.
+  * Bump boost dependency to 1.40 for boost::tr1 and drop alternates.
+  * Enable hardening if available.
+    + Add -W ... flags to CFLAGS to override dpkg-buildflag defaults.
+  * Update to dh_python2, comply with python policy.
+    + Renamed XS-Python-Version to X-Python-Version.
+    + Removed XB-Python-Version.
+    + Added --with python2 to dh invocation.
+    + Add --install-layout=deb.
+  * Added python-psycopg2 to suggests for postgresql plugin.
+
+ -- Helmut Grohne <h.grohne@cygnusnetworks.de>  Mon, 22 Oct 2012 17:36:52 +0200
+
 nflogipac (0.2-1) stable; urgency=low
 
   * First beta release

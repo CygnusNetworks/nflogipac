@@ -1,17 +1,15 @@
 #!/usr/bin/make -f
+DPKG_EXPORT_BUILDFLAGS=1
+-include /usr/share/dpkg/buildflags.mk
+CFLAGS += -W -Wall -Wextra -pedantic $(CPPFLAGS)
+CXXFLAGS += -W -Wall -Wextra -pedantic $(CPPFLAGS)
+export PYTHON_SETUP_INSTALL_FLAGS=--install-layout=deb
 export PREFIX=/usr
 %:
-	dh $@
+	dh $@ --with python2
 
-binary-arch:
-	dh $@ --until dh_installexamples
+override_dh_installexamples:
+	dh_installexamples
 	for f in debian/nflogipac/usr/share/doc/nflogipac/examples/*.conf; do \
 		sed -i 's|^\(plugin *= *"\)\./examples|\1/usr/lib/nflogipac|' \
 		$$f; done
-	dh $@ --remaining
-
-binary:binary-arch
-
-clean:
-	dh $@
-	rm -f debian/debhelper.log

@@ -232,6 +232,11 @@ class plugin:
 						"for at least %d seconds" % queue_age)
 				for backend in self.backends:
 					backend.account(group, self.formatter(group, addr), value)
+			elif entry[0] == "loss":
+				timestamp, group, count = entry[2:]
+				age = time.time() - timestamp
+				self.log.log_warning(("collector missed at least %d packets " +
+						"in group %d observed %ds ago") % (count, group, age))
 			elif entry[0] == "end_write":
 				for backend in self.backends:
 					backend.end_write()

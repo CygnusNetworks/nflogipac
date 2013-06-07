@@ -116,7 +116,12 @@ case "$1" in
 	esac
 	;;
   status)
-	status_of_proc -p "$PIDFILE" "$DAEMON" "$NAME"
+	# The following line is correct, but broken in Debian squeeze.
+	# status_of_proc -p "$PIDFILE" "$DAEMON" "$NAME"
+	# The squeeze version of pidofproc will return 4 in the absence of a pid file.
+	# In Debian wheezy pidofproc will correctly return 3.
+	# When not specifying -p, the first parameter is used to determine the pid file, so we must pass the basename of the pid file without extension here.
+	status_of_proc "$NAME" "$NAME"
 	exit $?
 	;;
   *)

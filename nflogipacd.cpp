@@ -185,7 +185,7 @@ nflogipac::nflogipac(uint16_t g, nflogipac_counter *c)
 }
 
 extern "C" {
-	nflog_callback callback;
+	static nflog_callback callback;
 }
 
 void nflogipac::open() {
@@ -229,7 +229,7 @@ void nflogipac::open() {
 
 extern "C" {
 
-int callback(struct nflog_g_handle *g UNUSED, struct nfgenmsg *m UNUSED,
+static int callback(struct nflog_g_handle *g UNUSED, struct nfgenmsg *m UNUSED,
 		struct nflog_data *d, void *p) {
 	char *payload;
 	const int l(::nflog_get_payload(d, &payload));

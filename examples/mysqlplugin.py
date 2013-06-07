@@ -82,12 +82,15 @@ class LaggyMySQLdb:
 		raise MySQLdb.OperationalError(2006)
 
 	def execute(self, query, params):
-		"""
+		"""Execute a query without result set on the database and commit it.
+		It must change precisely one row. Changing multiple rows may result in
+		some of them being changed twice.
 		@type query: str
 		@type params: tuple
 		@returns: None
 		@raises MySQLdb.OperationalError
 		"""
+		lasterr = None
 		for i in range(int(self.config["main"]["query_attempts"])):
 			self.log.log_debug("Executing db %s with %r %r attempt %d" %
 					(self.name, query, params, i), 8)
@@ -96,19 +99,24 @@ class LaggyMySQLdb:
 				self.db.commit()
 				return
 			except MySQLdb.OperationalError, error:
-				if error.args[0] != 2006: # MySQL server has gone away
-					self.log.log_err("Recieved MySQLdb.OperationalError while" +
-							" executing %r %r on %s: %r" %
-							(query, params, self.name, error))
-					raise # no clue what to do
-				self.log.log_warning(("MySQL server %s has gone away during " +
-						"execute %r %r attempt %d") %
-						(self.name, query, params, i))
-				self.reconnect()
-				# implicit continue
+				lasterr = error
+				if error.args[0] == 2006: # MySQL server has gone away
+					self.log.log_warning(("MySQL server %s has gone away during " +
+							"execute %r %r attempt %d") %
+							(self.name, query, params, i))
+					self.reconnect()
+					continue
+				if error.args[0] == 1205: # Lock wait timeout exceeded
+					self.log.log_warning("Ran into a lock timeout on server %s during execute %r %r attempt %d" % (self.name, query, params, i))
+					# no need to reconnect, just retry
+					continue
+				self.log.log_err("Recieved MySQLdb.OperationalError while" +
+						" executing %r %r on %s: %r" %
+						(query, params, self.name, error))
+				raise # no clue what to do
 		self.log.log_error("Giving up executing %r %r on %s." %
 				(query, params, self.name))
-		raise MySQLdb.OperationalError(2006)
+		raise lasterr
 
 class backend:
 	def __init__(self, config, trafficdb, useriddb=None):

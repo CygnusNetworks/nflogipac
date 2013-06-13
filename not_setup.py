@@ -5,7 +5,7 @@
 import distutils.core
 
 distutils.core.setup(name='nflogipac',
-	version='0.2',
+	version='0.3',
 	description="netfilter NFLOG based IP accounting daemon",
 	long_description="""It allows IP based accounting of traffic that is matched by iptables rules. Instead of the ULOG the more recent NFLOG target is used. This allows accounting IPv6 traffic. Furthermore this software is a hybrid of C++ and Python. The performance of C++ is used to count the traffic and the flexibility of Python is used to store the accounting information in a (MySQL) database.""",
 	author='Helmut Grohne',

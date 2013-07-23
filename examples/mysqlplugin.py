@@ -108,7 +108,7 @@ class LaggyMySQLdb:
 					continue
 				if error.args[0] == 1205: # Lock wait timeout exceeded
 					self.log.log_warning("Ran into a lock timeout on server %s during execute %r %r attempt %d" % (self.name, query, params, i))
-					# no need to reconnect, just retry
+					self.reconnect()
 					continue
 				self.log.log_err("Recieved MySQLdb.OperationalError while" +
 						" executing %r %r on %s: %r" %

@@ -1,4 +1,17 @@
-nflogipac (0.3) unstable; urgency=low
+nflogipac (0.40) wheezy; urgency=low
+
+  * Include bugfix for 1205 Operational error
+
+ -- Dr. Torge Szczepanek <t.szczepanek@cygnusnetworks.de>  Mon, 04 Nov 2013 20:26:44 +0100
+
+nflogipac (0.30+nmu1) wheezy; urgency=low
+
+  * Non-maintainer upload.
+  * Compile for wheezy
+
+ -- Dr. Torge Szczepanek <t.szczepanek@cygnusnetworks.de>  Thu, 13 Jun 2013 09:45:31 +0200
+
+nflogipac (0.30) unstable; urgency=low
 
   * New upstream release:
      + Push daemonizing into the application to show startup errors.

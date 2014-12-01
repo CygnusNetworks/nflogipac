@@ -9,6 +9,7 @@ shell for spawning the process.
 import subprocess
 from nflogipac.plugins import FormattingPlugin
 
+
 class plugin(FormattingPlugin):
 	def __init__(self, config, log):
 		FormattingPlugin.__init__(self, config)
@@ -18,12 +19,12 @@ class plugin(FormattingPlugin):
 	def handle_start_write(self):
 		assert self.child is None
 		self.child = subprocess.Popen(self.cmdline, shell=True,
-				stdin=subprocess.PIPE, close_fds=True)
+									  stdin=subprocess.PIPE, close_fds=True)
 
 	def handle_formatted_account(self, timestamp, group, addr, value):
 		assert self.child is not None
 		self.child.stdin.write("%d/%d/%s/%d\n" %
-				(timestamp, group, addr, value))
+							   (timestamp, group, addr, value))
 
 	def handle_end_write(self):
 		assert self.child is not None

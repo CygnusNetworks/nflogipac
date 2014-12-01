@@ -15,8 +15,8 @@ import os
 from nflogipac.plugins import AddressFormatter
 import socket
 
-# prefix of all active databases in the configuration 
-TRAFFIC_DB_START="traffic_"
+# prefix of all active databases in the configuration
+TRAFFIC_DB_START = "traffic_"
 
 
 class LaggyPostgreSQLdb:
@@ -32,10 +32,10 @@ class LaggyPostgreSQLdb:
 		self.close()
 		self.log.log_debug("Trying to connect to db %s." % self.name, 4)
 		self.db = psycopg2.connect(
-				host=self.dbconf["host"],
-				database=self.dbconf["db"],
-				user=self.dbconf["user"],
-				password=self.dbconf["password"])
+			host=self.dbconf["host"],
+			database=self.dbconf["db"],
+			user=self.dbconf["user"],
+			password=self.dbconf["password"])
 		self.cursor = self.db.cursor()
 		self.log.log_debug("Connected to db %s." % self.name, 4)
 
@@ -53,14 +53,14 @@ class LaggyPostgreSQLdb:
 			try:
 				return self.connect()
 			except psycopg2.OperationalError, error:
-				if error.args[0] != "08001": # Can't connect to PostgreSQL server on ...
+				if error.args[0] != "08001":  # Can't connect to PostgreSQL server on ...
 					self.log.log_err("Recieved psycopg2.OperationalError while" +
-							" connecting to %s: %r" % (self.name, error))
-					raise # no clue what to do
+									 " connecting to %s: %r" % (self.name, error))
+					raise  # no clue what to do
 				self.log.log_warning("Connection attempt %d to db %s failed." %
-						(i, self.name))
+									 (i, self.name))
 				time.sleep(int(self.config["main"]["reconnect_interval"]))
-				# implicit continue
+			# implicit continue
 		self.log.log_error("Giving connecting to db %s." % self.name)
 		raise psycopg2.OperationalError("08001")
 
@@ -73,22 +73,22 @@ class LaggyPostgreSQLdb:
 		"""
 		for i in range(int(self.config["main"]["query_attempts"])):
 			self.log.log_debug("Querying db %s with %r %r attempt %d" %
-					(self.name, query, params, i), 8)
+							   (self.name, query, params, i), 8)
 			try:
 				self.cursor.execute(query, params)
 				return self.cursor.fetchall()
 			except psycopg2.OperationalError, error:
-				if error.args[0] != "08007": # PostgreSQL server has gone away
+				if error.args[0] != "08007":  # PostgreSQL server has gone away
 					self.log.log_err("Recieved psycopg2.OperationalError while" +
-							" querying %s for %r %r: %r" %
-							(self.name, query, params, error))
-					raise # no clue what to do
+									 " querying %s for %r %r: %r" %
+									 (self.name, query, params, error))
+					raise  # no clue what to do
 				self.log.log_warning(("PostgreSQL server %s has gone away during " +
-					"query %r %r attempt %d") % (self.name, query, params, i))
+									  "query %r %r attempt %d") % (self.name, query, params, i))
 				self.reconnect()
-				# implicit continue
+			# implicit continue
 		self.log.log_error("Giving up querying %s for %r %r." %
-				(self.name, query, params))
+						   (self.name, query, params))
 		raise psycopg2.OperationalError("08007")
 
 	def execute(self, query, params):
@@ -100,32 +100,33 @@ class LaggyPostgreSQLdb:
 		"""
 		for i in range(int(self.config["main"]["query_attempts"])):
 			self.log.log_debug("Executing db %s with %r %r attempt %d" %
-					(self.name, query, params, i), 8)
+							   (self.name, query, params, i), 8)
 			try:
 				self.cursor.execute(query, params)
 				self.db.commit()
 				return
 			except psycopg2.OperationalError, error:
-				if error.args[0] != "08007": # PostgreSQL server has gone away
+				if error.args[0] != "08007":  # PostgreSQL server has gone away
 					self.log.log_err("Recieved psycopg2.OperationalError while" +
-							" executing %r %r on %s: %r" %
-							(query, params, self.name, error))
-					raise # no clue what to do
+									 " executing %r %r on %s: %r" %
+									 (query, params, self.name, error))
+					raise  # no clue what to do
 				self.log.log_warning(("PostgreSQL server %s has gone away during " +
-						"execute %r %r attempt %d") %
-						(self.name, query, params, i))
+									  "execute %r %r attempt %d") %
+									 (self.name, query, params, i))
 				self.reconnect()
-				# implicit continue
+			# implicit continue
 		self.log.log_error("Giving up executing %r %r on %s." %
-				(query, params, self.name))
+						   (query, params, self.name))
 		raise psycopg2.OperationalError("08007")
+
 
 class backend:
 	def __init__(self, config, trafficdb):
 		self.config = config
 		self.db = trafficdb
 		self.groups = dict((int(key), value) for key, value
-				in config["groups"].items())
+						   in config["groups"].items())
 		self.current_tables = {}
 
 	def create_current_table(self, group):
@@ -146,7 +147,7 @@ class backend:
 			$$ \
 			language 'plpgsql'; \
 			select update_the_db(); \
-			drop function update_the_db();" % (table_name, table_name, self.groups[group]["create_table"], table_name, table_name,table_name, table_name)
+			drop function update_the_db();" % (table_name, table_name, self.groups[group]["create_table"], table_name, table_name, table_name, table_name)
 		self.db.execute(query, ())
 		self.current_tables[group] = table_name
 
@@ -155,17 +156,18 @@ class backend:
 
 	def account(self, group, addr, value):
 		self.create_current_table(group)
-		query = "INSERT INTO %s %s;" % (self.current_tables[group],self.groups[group]["insert"].replace("?", "%s"))
+		query = "INSERT INTO %s %s;" % (self.current_tables[group], self.groups[group]["insert"].replace("?", "%s"))
 		parammap = dict(pid=os.getpid(), hostname=socket.gethostname(),
-				address=addr, value=value)
+						address=addr, value=value)
 		params = self.groups[group]["insert_params"]
-		
+
 		params = list(map(parammap.__getitem__, params))
 
 		self.db.execute(query, params)
 
 	def end_write(self):
 		self.db.close()
+
 
 class plugin:
 	def __init__(self, config, log):
@@ -179,7 +181,7 @@ class plugin:
 			if dbname.startswith(TRAFFIC_DB_START):
 				trafficdb = LaggyPostgreSQLdb(config, dbname, log)
 				log.log_debug("Found database %s for traffic information" %
-						dbname, 3)
+							  dbname, 3)
 				self.backends.append(backend(config, trafficdb))
 
 	def run(self, queue):
@@ -187,7 +189,7 @@ class plugin:
 			qsize = queue.qsize()
 			if qsize > self.queue_size_warn:
 				self.log.log_warning("queue contains at least %d entries" %
-						qsize)
+									 qsize)
 			entry = queue.get()
 			if entry[0] == "terminate":
 				return
@@ -199,15 +201,16 @@ class plugin:
 				queue_age = time.time() - timestamp
 				if queue_age > self.queue_age_warn:
 					self.log.log_warning("processing of queue lacks behind " +
-						"for at least %d seconds" % queue_age)
+										 "for at least %d seconds" % queue_age)
 				for backend in self.backends:
 					backend.account(group, self.formatter(group, addr), value)
 			elif entry[0] == "loss":
 				timestamp, group, count = entry[2:]
 				age = time.time() - timestamp
 				self.log.log_warning(("collector missed at least %d packets " +
-						"in group %d observed %ds ago") % (count, group, age))
+									  "in group %d observed %ds ago") % (count, group, age))
 			elif entry[0] == "end_write":
 				for backend in self.backends:
 					backend.end_write()
+
 # vim:ts=4 sw=4

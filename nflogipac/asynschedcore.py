@@ -4,6 +4,7 @@ import asyncore
 import sched
 import time
 
+
 class asynschedcore(sched.scheduler):
 	"""Combine sched.scheduler and asyncore.loop.
 
@@ -20,6 +21,7 @@ class asynschedcore(sched.scheduler):
 	# maximum time in seconds to spend in asycore.loop before reexamining the
 	# scheduler.
 	maxloop = 30
+
 	def __init__(self, map=None):
 		"""
 		@type map: dict or None
@@ -40,7 +42,7 @@ class asynschedcore(sched.scheduler):
 		# Returning from this function causes the next event to be executed, so
 		# it might be executed too early. This can be avoided by modifying the
 		# head of the queue. Also note that enterabs sets _abort_delay to True.
-		self.enterabs(0, 0, lambda:None, ())
+		self.enterabs(0, 0, lambda: None, ())
 		self._abort_delay = False
 		return True
 
@@ -55,7 +57,7 @@ class asynschedcore(sched.scheduler):
 		finish = now + timeout
 		while now < finish and self.asynmap:
 			asyncore.loop(min(finish - now, self.maxloop), map=self.asynmap,
-					count=1)
+						  count=1)
 			if self._maybe_abort_delay():
 				return
 			now = time.time()
@@ -66,7 +68,7 @@ class asynschedcore(sched.scheduler):
 		# We might insert an event before the currently next event.
 		self._abort_delay = True
 		return sched.scheduler.enterabs(self, abstime, priority, action,
-				argument)
+										argument)
 
 	# Overwriting enter is not necessary, because it is implemented using enter.
 
@@ -87,10 +89,12 @@ class asynschedcore(sched.scheduler):
 			else:
 				break
 
+
 class periodic:
 	"""Set up a function for periodic invocation with a scheduler."""
+
 	def __init__(self, schedinst, interval, priority, function, *args,
-			**kwargs):
+				 **kwargs):
 		"""
 		@type schedinst: sched.scheduler
 		@type interval: int or float
@@ -117,7 +121,7 @@ class periodic:
 		if self.event is not None:
 			raise ValueError("already started or scheduled")
 		self.event = self.schedinst.enter(self.interval, self.priority,
-				self._call_wrapper, ())
+										  self._call_wrapper, ())
 
 	def stop(self):
 		"""Stop periodic execution no matter whether it was already stopped or

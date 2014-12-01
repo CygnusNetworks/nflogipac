@@ -24,21 +24,24 @@ from nflogipac.syslogging import SysloggingDebugLevel
 
 try:
 	from nflogipac.paths import nflogipacd as nflogipacd_path
-except ImportError: # running from source directory
+except ImportError:  # running from source directory
 	nflogipacd_path = "./nflogipacd"
 
 try:
 	from setproctitle import setproctitle
 except ImportError, exc:
-	def setproctitle(_): # make this ImportError lazy
+	def setproctitle(_):  # make this ImportError lazy
 		raise exc
+
 
 class FatalError(Exception):
 	"""Something very bad happend leading to program abort with a message."""
 
+
 def set_close_on_exec(filedescriptor):
 	flags = fcntl.fcntl(filedescriptor, fcntl.F_GETFD)
 	fcntl.fcntl(filedescriptor, fcntl.F_SETFD, flags | fcntl.FD_CLOEXEC)
+
 
 def create_counter(group, kind):
 	"""
@@ -47,10 +50,10 @@ def create_counter(group, kind):
 	@rtype: (int, socket)
 	@returns: (pid, stdin_and_stdout)
 	"""
-	parentsock, childsock = socket.socketpair() # for communication
-	parentpipe, childpipe = os.pipe() # for startup
+	parentsock, childsock = socket.socketpair()  # for communication
+	parentpipe, childpipe = os.pipe()  # for startup
 	pid = os.fork()
-	if 0 == pid: # child
+	if 0 == pid:  # child
 		try:
 			parentsock.close()
 			os.close(parentpipe)
@@ -67,7 +70,7 @@ def create_counter(group, kind):
 				sys.exit(1)
 		except Exception, exc:
 			os.write(childpipe, "something in the child went wrong badly: %s" %
-					str(exc))
+					 str(exc))
 			sys.exit(1)
 		os.write(childpipe, "this is unreachable code")
 		sys.exit(1)
@@ -80,6 +83,7 @@ def create_counter(group, kind):
 	if report:
 		raise FatalError(report)
 	return pid, parentsock
+
 
 class Counter(asyncore.dispatcher):
 	def __init__(self, group, kind, map=None):
@@ -161,6 +165,7 @@ class Counter(asyncore.dispatcher):
 		"""
 		raise NotImplementedError
 
+
 class DebugCounter(Counter):
 	def __init__(self, *args, **kwargs):
 		Counter.__init__(self, *args, **kwargs)
@@ -169,13 +174,14 @@ class DebugCounter(Counter):
 	def handle_cmd_update(self, timestamp, addr, value):
 		self.pending[addr] += value
 		print("received update for group %d addr %s value %d" %
-				(self.group, addr.encode("hex"), value))
+			  (self.group, addr.encode("hex"), value))
 
 	def handle_cmd_end(self):
 		print("end %r" % (self.pending,))
 
 	def handle_cmd_loss(self, timestamp, count):
 		print("lost at least %d segments" % count)
+
 
 class ReportingCounter(Counter):
 	def __init__(self, group, kind, writefunc, endfunc, lossfunc, map=None):
@@ -204,6 +210,7 @@ class ReportingCounter(Counter):
 	def handle_cmd_loss(self, timestamp, count):
 		self.lossfunc(timestamp, self.group, count)
 
+
 class GatherThread(threading.Thread):
 	def __init__(self, pinginterval, wt, log):
 		"""
@@ -226,7 +233,7 @@ class GatherThread(threading.Thread):
 		"""
 		assert group not in self.counters
 		self.counters[group] = ReportingCounter(group, kind, self.wt.account,
-				self.end_hook, self.wt.notice_loss, self.asc.asynmap)
+												self.end_hook, self.wt.notice_loss, self.asc.asynmap)
 
 	def request_data(self):
 		self.wt.start_write()
@@ -273,10 +280,10 @@ class GatherThread(threading.Thread):
 				continue
 			if self.terminating:
 				self.log.log_notice("child pid:%d group:%d terminated" %
-						(pid, group))
+									(pid, group))
 			else:
 				self.log.log_err("child pid:%d group:%d unexpectedly died" %
-						(pid, group))
+								 (pid, group))
 			try:
 				self.counters_working.remove(group)
 			except KeyError:
@@ -294,13 +301,14 @@ class GatherThread(threading.Thread):
 			try:
 				pid, status = os.waitpid(-1, os.WNOHANG)
 			except OSError, err:
-				if err.args[0] == errno.ECHILD: # suppress ECHILD
+				if err.args[0] == errno.ECHILD:  # suppress ECHILD
 					return
 				raise
 			if pid == 0:
 				return
 			if self.handle_child_death(pid):
 				self.terminate()
+
 
 class WriteThread(threading.Thread):
 	def __init__(self, writeplugin, log):
@@ -329,7 +337,7 @@ class WriteThread(threading.Thread):
 			self.writeplugin.run(self.queue)
 		except Exception, exc:
 			self.log.log_err("Caught %s from plugin: %s" %
-					(type(exc).__name__, str(exc)))
+							 (type(exc).__name__, str(exc)))
 			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 				self.log.log_err(line)
 			os._exit(1)
@@ -337,14 +345,15 @@ class WriteThread(threading.Thread):
 		# things going, so we terminate *all* threads now.
 		os._exit(0)
 
+
 syslog_facilities = dict(kern=syslog.LOG_KERN, user=syslog.LOG_USER,
-		mail=syslog.LOG_MAIL, daemon=syslog.LOG_DAEMON, auth=syslog.LOG_AUTH,
-		lpr=syslog.LOG_LPR, new=syslog.LOG_NEWS, uucp=syslog.LOG_UUCP,
-		cron=syslog.LOG_CRON, local0=syslog.LOG_LOCAL0,
-		local1=syslog.LOG_LOCAL1, local2=syslog.LOG_LOCAL2,
-		local3=syslog.LOG_LOCAL3, local4=syslog.LOG_LOCAL4,
-		local5=syslog.LOG_LOCAL5, local6=syslog.LOG_LOCAL6,
-		local7=syslog.LOG_LOCAL7)
+						 mail=syslog.LOG_MAIL, daemon=syslog.LOG_DAEMON, auth=syslog.LOG_AUTH,
+						 lpr=syslog.LOG_LPR, new=syslog.LOG_NEWS, uucp=syslog.LOG_UUCP,
+						 cron=syslog.LOG_CRON, local0=syslog.LOG_LOCAL0,
+						 local1=syslog.LOG_LOCAL1, local2=syslog.LOG_LOCAL2,
+						 local3=syslog.LOG_LOCAL3, local4=syslog.LOG_LOCAL4,
+						 local5=syslog.LOG_LOCAL5, local6=syslog.LOG_LOCAL6,
+						 local7=syslog.LOG_LOCAL7)
 
 config_spec = configobj.ConfigObj(("""
 [main]
@@ -358,12 +367,14 @@ pidfile = string(min=0)
 [[__many__]]
 kind = string(min=1)
 """ % dict(syslog_facilities=", ".join(map(repr, syslog_facilities.keys()))
-	)).splitlines(), interpolation=False, list_values=False)
+)).splitlines(), interpolation=False, list_values=False)
+
 
 def die(log, message):
 	log.log_err(message)
 	sys.stderr.write(message + "\n")
 	sys.exit(1)
+
 
 def daemonize(log):
 	rend, wend = os.pipe()
@@ -395,20 +406,21 @@ def daemonize(log):
 	set_close_on_exec(wend)
 	return wend
 
+
 def main():
 	if len(sys.argv) != 2:
 		print("Usage: %s <configfile>" % sys.argv[0])
 		sys.exit(1)
 
-	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec,file_error=True)
+	config = configobj.ConfigObj(sys.argv[1], configspec=config_spec, file_error=True)
 	for section_list, key, error in configobj.flatten_errors(config,
-			config.validate(validate.Validator())):
+															 config.validate(validate.Validator())):
 		raise ValueError("failed to validate %s in section %s" %
-				(key, ", ".join(section_list)))
+						 (key, ", ".join(section_list)))
 
 	log = SysloggingDebugLevel("nflogipacd",
-		facility=syslog_facilities[config["main"]["syslog_facility"]],
-		log_level=config["main"]["log_level"])
+							   facility=syslog_facilities[config["main"]["syslog_facility"]],
+							   log_level=config["main"]["log_level"])
 
 	if config["main"]["daemonize"]:
 		old_stderr = sys.stderr
@@ -417,10 +429,10 @@ def main():
 	log.log_notice("started")
 	log.log_debug("Loading plugin %s" % config["main"]["plugin"], 0)
 	try:
-		plugin = imp.load_source("__plugin__",config["main"]["plugin"]).plugin(config, log)
+		plugin = imp.load_source("__plugin__", config["main"]["plugin"]).plugin(config, log)
 	except Exception, exc:
 		msg = "Failed to load plugin %s. Error: %s" % \
-				(config["main"]["plugin"], exc)
+			  (config["main"]["plugin"], exc)
 		log.log_err(msg)
 		for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 			log.log_err(line)
@@ -441,9 +453,11 @@ def main():
 	def handle_sigterm(*_):
 		log.log_notice("received SIGTERM")
 		gt.terminate()
+
 	def handle_sighup(*_):
 		log.log_notice("received SIGHUP")
 		gt.ping_now()
+
 	signal.signal(signal.SIGTERM, handle_sigterm)
 	signal.signal(signal.SIGHUP, handle_sighup)
 	signal.signal(signal.SIGCHLD, lambda *_: gt.handle_sigchld())
@@ -456,7 +470,7 @@ def main():
 			die(log, "failed to write pidfile: %r" % err)
 
 	if config["main"]["daemonize"]:
-		sys.stderr.close() # parent terminates cleanly
+		sys.stderr.close()  # parent terminates cleanly
 		sys.stderr = old_stderr
 
 	# Starting write thread
@@ -469,10 +483,11 @@ def main():
 			try:
 				os.unlink(config["main"]["pidfile"])
 			except OSError:
-				pass # ignore
+				pass  # ignore
 		log.log_notice("gather thread stopped")
 		wt.terminate()
 		log.log_notice("storage thread stopped")
+
 
 if __name__ == '__main__':
 	main()

@@ -79,16 +79,16 @@ class Syslogging(object):
 			if __debug__ and not self.quiet:
 				self.log_output("ERR", message)
 		elif level == syslog.LOG_WARNING:
-			if __debug__ and self.quiet == False:
+			if __debug__ and self.quiet is False:
 				self.log_output("WARNING", message)
 		elif level == syslog.LOG_INFO:
-			if __debug__ and self.quiet == False:
+			if __debug__ and self.quiet is False:
 				self.log_output("INFO", message)
 		elif level == syslog.LOG_DEBUG:
-			if (__debug__) and (self.quiet == False):
+			if (__debug__) and (self.quiet is False):
 				self.log_output("DEBUG", message)
 		else:
-			if (__debug__) and (self.quiet == False):
+			if (__debug__) and (self.quiet is False):
 				self.log_output("UNKNOWN", message)
 		syslog.syslog(level, message)
 

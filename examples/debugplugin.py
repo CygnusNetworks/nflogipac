@@ -11,11 +11,13 @@ class plugin(FormattingPlugin):
 		print("accounting %d bytes for address %s on group %d" %
 			  (value, addr, group))
 
-	def handle_loss(self, timestamp, group, count):
+	@staticmethod
+	def handle_loss(timestamp, group, count):
 		print("missed at least %d packets for group %d" %
 			  (count, group))
 
-	def handle_end_write(self):
+	@staticmethod
+	def handle_end_write():
 		print("ending write")
 
 # vim:ts=4 sw=4

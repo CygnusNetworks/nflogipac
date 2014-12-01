@@ -10,7 +10,7 @@ import socket
 TRAFFIC_DB_START = "traffic_"
 
 
-class LaggyMySQLdb:
+class LaggyMySQLdb(object):
 	def __init__(self, config, name, log):
 		self.config = config
 		self.name = name
@@ -127,8 +127,7 @@ class backend(object):
 						   in config["groups"].items())
 		self.current_tables = {}
 		self.useriddb = useriddb
-		if all("userid" not in groupconf["insert_params"] \
-			   for groupconf in self.groups.values()):
+		if all("userid" not in groupconf["insert_params"] for groupconf in self.groups.values()):
 			self.useriddb = None
 
 	def create_current_table(self, group):
@@ -136,9 +135,7 @@ class backend(object):
 			now = time.localtime()
 		else:
 			now = time.gmtime()
-		table_name = self.groups[group]["table_prefix"] + \
-					 time.strftime(self.groups[group]["table_strftime"],
-								   now)
+		table_name = self.groups[group]["table_prefix"] + time.strftime(self.groups[group]["table_strftime"], now)
 		if table_name == self.current_tables.get(group):
 			return
 		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name,

@@ -5,7 +5,7 @@ import sched
 import time
 
 
-class asynschedcore(sched.scheduler):
+class asynschedcore(sched.scheduler, object):
 	"""Combine sched.scheduler and asyncore.loop.
 
 	If asyncore.ExitNow is raised from anything (indirectly) called by the run
@@ -90,7 +90,7 @@ class asynschedcore(sched.scheduler):
 				break
 
 
-class periodic:
+class periodic(object):
 	"""Set up a function for periodic invocation with a scheduler."""
 
 	def __init__(self, schedinst, interval, priority, function, *args,

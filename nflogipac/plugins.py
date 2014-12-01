@@ -59,7 +59,6 @@ class FormattingPlugin(SimplePlugin):
 		raise NotImplementedError
 
 	def handle_account(self, timestamp, group, addr, value):
-		self.handle_formatted_account(timestamp, group,
-									  self.formatter(group, addr), value)
+		self.handle_formatted_account(timestamp, group, self.formatter(group, addr), value)
 
 # vim:ts=4 sw=4

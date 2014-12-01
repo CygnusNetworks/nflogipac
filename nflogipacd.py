@@ -68,9 +68,9 @@ def create_counter(group, kind):
 			except OSError as err:
 				os.write(childpipe, "exec failed with OSError: %s" % str(err))
 				sys.exit(1)
-		except Exception as exc:
+		except Exception as e:
 			os.write(childpipe, "something in the child went wrong badly: %s" %
-					 str(exc))
+					 str(e))
 			sys.exit(1)
 		os.write(childpipe, "this is unreachable code")
 		sys.exit(1)
@@ -85,8 +85,8 @@ def create_counter(group, kind):
 	return pid, parentsock
 
 
-class Counter(asyncore.dispatcher):
-	def __init__(self, group, kind, map=None):
+class Counter(asyncore.dispatcher, object):
+	def __init__(self, group, kind, mapping=None):
 		"""
 		@type group: int
 		@type kind: str
@@ -94,7 +94,7 @@ class Counter(asyncore.dispatcher):
 		self.group = group
 		self.kind = kind
 		self.pid, counter_sock = create_counter(group, kind)
-		asyncore.dispatcher.__init__(self, sock=counter_sock, map=map)
+		asyncore.dispatcher.__init__(self, sock=counter_sock, map=mapping)
 		self.requesting_data = False
 		self.lastrequest = 0
 		self.buf = ""
@@ -161,7 +161,6 @@ class Counter(asyncore.dispatcher):
 	def handle_cmd_loss(self, timestamp, count):
 		"""
 		@type timestamp: float
-		@type addr: str
 		"""
 		raise NotImplementedError
 
@@ -184,7 +183,7 @@ class DebugCounter(Counter):
 
 
 class ReportingCounter(Counter):
-	def __init__(self, group, kind, writefunc, endfunc, lossfunc, map=None):
+	def __init__(self, group, kind, writefunc, endfunc, lossfunc, mapping=None):
 		"""
 		@type group: int
 		@type kind: str
@@ -196,7 +195,7 @@ class ReportingCounter(Counter):
 		@type lossfunc: (float, int, int) -> None
 		@param lossfunc: takes a timestamp, a group and a count
 		"""
-		Counter.__init__(self, group, kind, map)
+		Counter.__init__(self, group, kind, mapping)
 		self.writefunc = writefunc
 		self.endfunc = endfunc
 		self.lossfunc = lossfunc
@@ -335,8 +334,8 @@ class WriteThread(threading.Thread):
 	def run(self):
 		try:
 			self.writeplugin.run(self.queue)
-		except Exception as exc:
-			self.log.log_err("Caught %s from plugin: %s" % (type(exc).__name__, str(exc)))
+		except Exception as e:
+			self.log.log_err("Caught %s from plugin: %s" % (type(e).__name__, str(e)))
 			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 				self.log.log_err(line)
 			os._exit(1)
@@ -377,7 +376,7 @@ def die(log, message):
 
 def daemonize(log):
 	rend, wend = os.pipe()
-	rend = os.fdopen(rend, "r")
+	rend = os.fdopen(rend)
 	wend = os.fdopen(wend, "w")
 	os.chdir("/")
 	devnull = os.open("/dev/null", os.O_RDWR)
@@ -429,8 +428,8 @@ def main():
 	log.log_debug("Loading plugin %s" % config["main"]["plugin"], 0)
 	try:
 		plugin = imp.load_source("__plugin__", config["main"]["plugin"]).plugin(config, log)
-	except Exception as exc:
-		msg = "Failed to load plugin %s. Error: %s" % (config["main"]["plugin"], exc)
+	except Exception as e:
+		msg = "Failed to load plugin %s. Error: %s" % (config["main"]["plugin"], e)
 		log.log_err(msg)
 		for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 			log.log_err(line)

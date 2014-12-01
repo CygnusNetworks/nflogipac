@@ -18,7 +18,7 @@ import socket
 TRAFFIC_DB_START = "traffic_"
 
 
-class LaggyPostgreSQLdb:
+class LaggyPostgreSQLdb(object):
 	def __init__(self, config, name, log):
 		self.config = config
 		self.name = name

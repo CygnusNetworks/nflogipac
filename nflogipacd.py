@@ -29,7 +29,7 @@ except ImportError:  # running from source directory
 
 try:
 	from setproctitle import setproctitle
-except ImportError, exc:
+except ImportError as exc:
 	def setproctitle(_):  # make this ImportError lazy
 		raise exc
 
@@ -65,10 +65,10 @@ def create_counter(group, kind):
 			os.dup2(childsock.fileno(), 1)
 			try:
 				os.execv(nflogipacd_path, [nflogipacd_path, "%d" % group, kind])
-			except OSError, err:
+			except OSError as err:
 				os.write(childpipe, "exec failed with OSError: %s" % str(err))
 				sys.exit(1)
-		except Exception, exc:
+		except Exception as exc:
 			os.write(childpipe, "something in the child went wrong badly: %s" %
 					 str(exc))
 			sys.exit(1)
@@ -300,7 +300,7 @@ class GatherThread(threading.Thread):
 		while True:
 			try:
 				pid, status = os.waitpid(-1, os.WNOHANG)
-			except OSError, err:
+			except OSError as err:
 				if err.args[0] == errno.ECHILD:  # suppress ECHILD
 					return
 				raise
@@ -335,9 +335,8 @@ class WriteThread(threading.Thread):
 	def run(self):
 		try:
 			self.writeplugin.run(self.queue)
-		except Exception, exc:
-			self.log.log_err("Caught %s from plugin: %s" %
-							 (type(exc).__name__, str(exc)))
+		except Exception as exc:
+			self.log.log_err("Caught %s from plugin: %s" % (type(exc).__name__, str(exc)))
 			for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 				self.log.log_err(line)
 			os._exit(1)
@@ -393,13 +392,13 @@ def daemonize(log):
 				sys.stderr.write(data)
 				sys.exit(1)
 			sys.exit(0)
-	except OSError, e:
+	except OSError:
 		die(log, "first fork failed")
 	os.setsid()
 	try:
 		if os.fork() > 0:
 			sys.exit(0)
-	except OSError, e:
+	except OSError:
 		die(log, "second fork failed")
 	rend.close()
 	os.dup2(devnull, 2)
@@ -430,9 +429,8 @@ def main():
 	log.log_debug("Loading plugin %s" % config["main"]["plugin"], 0)
 	try:
 		plugin = imp.load_source("__plugin__", config["main"]["plugin"]).plugin(config, log)
-	except Exception, exc:
-		msg = "Failed to load plugin %s. Error: %s" % \
-			  (config["main"]["plugin"], exc)
+	except Exception as exc:
+		msg = "Failed to load plugin %s. Error: %s" % (config["main"]["plugin"], exc)
 		log.log_err(msg)
 		for line in traceback.format_exc(sys.exc_info()[2]).splitlines():
 			log.log_err(line)
@@ -466,7 +464,7 @@ def main():
 		try:
 			with file(config["main"]["pidfile"], "w") as pidfile:
 				pidfile.write("%d\n" % os.getpid())
-		except IOError, err:
+		except IOError as err:
 			die(log, "failed to write pidfile: %r" % err)
 
 	if config["main"]["daemonize"]:

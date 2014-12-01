@@ -44,13 +44,11 @@ class LaggyMySQLdb:
 		for i in range(int(self.config["main"]["reconnect_attempts"])):
 			try:
 				return self.connect()
-			except MySQLdb.OperationalError, error:
+			except MySQLdb.OperationalError as error:
 				if error.args[0] != 2003:  # Can't connect to MySQL server on ...
-					self.log.log_err("Recieved MySQLdb.OperationalError while" +
-									 " connecting to %s: %r" % (self.name, error))
+					self.log.log_err("Recieved MySQLdb.OperationalError while connecting to %s: %r" % (self.name, error))
 					raise  # no clue what to do
-				self.log.log_warning("Connection attempt %d to db %s failed." %
-									 (i, self.name))
+				self.log.log_warning("Connection attempt %d to db %s failed." % (i, self.name))
 				time.sleep(int(self.config["main"]["reconnect_interval"]))
 			# implicit continue
 		self.log.log_error("Giving connecting to db %s." % self.name)
@@ -69,7 +67,7 @@ class LaggyMySQLdb:
 			try:
 				self.cursor.execute(query, params)
 				return self.cursor.fetchall()
-			except MySQLdb.OperationalError, error:
+			except MySQLdb.OperationalError as error:
 				if error.args[0] != 2006:  # MySQL server has gone away
 					self.log.log_err("Recieved MySQLdb.OperationalError while" +
 									 " querying %s for %r %r: %r" %
@@ -100,7 +98,7 @@ class LaggyMySQLdb:
 				self.cursor.execute(query, params)
 				self.db.commit()
 				return
-			except MySQLdb.OperationalError, error:
+			except MySQLdb.OperationalError as error:
 				lasterr = error
 				if error.args[0] == 2006:  # MySQL server has gone away
 					self.log.log_warning(("MySQL server %s has gone away during " +
@@ -121,7 +119,7 @@ class LaggyMySQLdb:
 		raise lasterr
 
 
-class backend:
+class backend(object):
 	def __init__(self, config, trafficdb, useriddb=None):
 		self.config = config
 		self.db = trafficdb
@@ -187,7 +185,7 @@ class backend:
 		self.db.close()
 
 
-class plugin:
+class plugin(object):
 	def __init__(self, config, log):
 		self.log = log
 		self.queue_size_warn = int(config["main"]["queue_size_warn"])

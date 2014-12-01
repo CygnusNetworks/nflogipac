@@ -51,7 +51,7 @@ class LaggyPostgreSQLdb:
 		for i in range(int(self.config["main"]["reconnect_attempts"])):
 			try:
 				return self.connect()
-			except psycopg2.OperationalError, error:
+			except psycopg2.OperationalError as error:
 				if error.args[0] != "08001":  # Can't connect to PostgreSQL server on ...
 					self.log.log_err("Recieved psycopg2.OperationalError while" +
 									 " connecting to %s: %r" % (self.name, error))
@@ -76,7 +76,7 @@ class LaggyPostgreSQLdb:
 			try:
 				self.cursor.execute(query, params)
 				return self.cursor.fetchall()
-			except psycopg2.OperationalError, error:
+			except psycopg2.OperationalError as error:
 				if error.args[0] != "08007":  # PostgreSQL server has gone away
 					self.log.log_err("Recieved psycopg2.OperationalError while" +
 									 " querying %s for %r %r: %r" %
@@ -104,7 +104,7 @@ class LaggyPostgreSQLdb:
 				self.cursor.execute(query, params)
 				self.db.commit()
 				return
-			except psycopg2.OperationalError, error:
+			except psycopg2.OperationalError as error:
 				if error.args[0] != "08007":  # PostgreSQL server has gone away
 					self.log.log_err("Recieved psycopg2.OperationalError while" +
 									 " executing %r %r on %s: %r" %
@@ -120,7 +120,7 @@ class LaggyPostgreSQLdb:
 		raise psycopg2.OperationalError("08007")
 
 
-class backend:
+class backend(object):
 	def __init__(self, config, trafficdb):
 		self.config = config
 		self.db = trafficdb
@@ -168,7 +168,7 @@ class backend:
 		self.db.close()
 
 
-class plugin:
+class plugin(object):
 	def __init__(self, config, log):
 		self.log = log
 		self.queue_size_warn = int(config["main"]["queue_size_warn"])

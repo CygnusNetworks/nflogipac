@@ -3,7 +3,7 @@
 import socket
 
 
-class AddressFormatter:
+class AddressFormatter(object):
 	kindtofamily = dict(
 		ipv4src=socket.AF_INET, ipv4dst=socket.AF_INET,
 		ipv6src=socket.AF_INET6, ipv6dst=socket.AF_INET6)
@@ -29,7 +29,7 @@ class AddressFormatter:
 		return socket.inet_ntop(self.groupmap[group], binaryaddress)
 
 
-class SimplePlugin:
+class SimplePlugin(object):
 	"""A possible base class for simple plugins. It translates events to
 	calling "handle_..." methods if present."""
 

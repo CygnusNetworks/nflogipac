@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*- 
+# -*- coding: utf-8 -*-
 """Syslogging class using Python syslog module"""
 
 import inspect
@@ -25,7 +25,7 @@ class Syslogging(object):
 		self.filename=filename
 		self.quiet=quiet
 		self.full_trace = False
-		
+
 	def enable_full_trace(self):
 		"""Enables full trace of function calls in log output"""
 		self.full_trace = True
@@ -62,7 +62,7 @@ class Syslogging(object):
 				calling_prefix+=os.path.basename(elem[1])+":"+str(elem[2])
 				last_prefix=os.path.basename(elem[1])+":"+str(elem[2])
 				last_function=elem[3]
-		
+
 		if self.full_trace:
 			if last_function!="<module>":
 				calling_prefix+="/"+last_function
@@ -72,7 +72,7 @@ class Syslogging(object):
 			else:
 				calling_prefix=last_prefix
 		message=calling_prefix+"###"+message
-		
+
 		if level==syslog.LOG_ERR:
 			if __debug__ and not self.quiet:
 				self.log_output("ERR", message)
@@ -84,10 +84,10 @@ class Syslogging(object):
 				self.log_output("INFO",message)
 		elif level==syslog.LOG_DEBUG:
 			if (__debug__) and (self.quiet==False):
-				self.log_output("DEBUG",message)				
+				self.log_output("DEBUG",message)
 		else:
 			if (__debug__) and (self.quiet==False):
-				self.log_output("UNKNOWN",message)				
+				self.log_output("UNKNOWN",message)
 		syslog.syslog(level,message)
 
 	def log_error(self,message):
@@ -157,14 +157,14 @@ class SysloggingDebugLevel(Syslogging):
 		Syslogging.__init__(self, filename, facility=facility, quiet=quiet)
 		self.log_level = log_level
 		self.log_debug(filename+" started and SysloggingDebugLevel initialized")
-	
+
 	def set_debug_level(self,log_level):
 		"""Sets a new debug level to value of log_level
 		@param log_level: New log level to be set
 		@type log_level: integer
 		"""
 		self.log_level=log_level
-	
+
 	def log_debug(self,message,level=0):
 		"""Log function which logs a message if the given level is equal or higher the current debug log level
 		@param message: A message to be logge

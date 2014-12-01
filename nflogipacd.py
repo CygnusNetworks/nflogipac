@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+# -*- coding: utf-8 -*-
 
 from __future__ import with_statement
 import struct
@@ -405,7 +406,7 @@ def main():
 		raise ValueError("failed to validate %s in section %s" %
 				(key, ", ".join(section_list)))
 
-	log = SysloggingDebugLevel("nflogipacd", 
+	log = SysloggingDebugLevel("nflogipacd",
 		facility=syslog_facilities[config["main"]["syslog_facility"]],
 		log_level=config["main"]["log_level"])
 
@@ -425,7 +426,7 @@ def main():
 			log.log_err(line)
 		sys.stderr.write(msg + "\n")
 		sys.exit(1)
-		
+
 	if "proctitle" in config["main"]:
 		try:
 			setproctitle(config["main"]["proctitle"])

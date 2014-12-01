@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 import time
 import MySQLdb
 import MySQLdb.cursors

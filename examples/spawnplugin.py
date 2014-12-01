@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 """
 Spawn a process for each report and feed data on stdin in a '/' delimited ascii
 format. The fields of input lines are timestamp, group, address and value. The

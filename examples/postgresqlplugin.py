@@ -1,4 +1,3 @@
-#
 # -*- encoding: utf8 -*-
 #
 # Copyright (C) 2011-2012 Cygnus Networks GmbH <info@cygnusnetworks.de>

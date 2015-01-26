@@ -126,10 +126,11 @@ class backend(object):
 		table_name = self.groups[group]["table_prefix"] + time.strftime(self.groups[group]["table_strftime"], now)
 		if table_name == self.current_tables.get(group):
 			return
-		query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s  AND table_name = %s"
+		query = "SELECT COUNT(*) AS count FROM information_schema.tables WHERE table_schema = %s  AND table_name = %s"
 		res = self.db.query(query, (self.db.dbconf["db"], table_name))
-		self.db.log.log_debug("Found %s tables present in database" % res)
-		if res and res[0] == 0:
+		if res and res[0]["count"] == 1:
+			self.db.log.log_debug("Table %s is already existent. Skipping creating table" % table_name)
+		else:
 			query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name, self.groups[group]["create_table"])
 			self.db.execute(query, ())
 		self.current_tables[group] = table_name
@@ -193,11 +194,11 @@ class plugin(object):
 				useriddb = None
 				if employ_userid and useriddbname in config["databases"]:
 					useriddb = LaggyMySQLdb(config, useriddbname, log)
-					log.log_debug("Found database for userid information")
+					log.log_debug("Using separate database %s for userid information" % useriddbname)
 				elif config["main"].has_key("userid_query"):
-					log.log_notice(("Not using any userid database since no database definition %s could be found") % useriddbname)
+					log.log_debug("Using database %s for userid query" % dbname)
 				else:
-					log.log_debug("Not using any userid database", 3)
+					log.log_debug("Not using any userid query")
 
 				self.backends.append(backend(config, trafficdb, useriddb))
 

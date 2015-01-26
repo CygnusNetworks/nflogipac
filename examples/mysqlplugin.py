@@ -69,16 +69,12 @@ class LaggyMySQLdb(object):
 				return self.cursor.fetchall()
 			except MySQLdb.OperationalError as error:
 				if error.args[0] != 2006:  # MySQL server has gone away
-					self.log.log_err("Recieved MySQLdb.OperationalError while" +
-									 " querying %s for %r %r: %r" %
-									 (self.name, query, params, error))
+					self.log.log_err("Recieved MySQLdb.OperationalError while querying %s for %r %r: %r" % (self.name, query, params, error))
 					raise  # no clue what to do
-				self.log.log_warning(("MySQL server %s has gone away during " +
-									  "query %r %r attempt %d") % (self.name, query, params, i))
+				self.log.log_warning(("MySQL server %s has gone away during query %r %r attempt %d") % (self.name, query, params, i))
 				self.reconnect()
 			# implicit continue
-		self.log.log_error("Giving up querying %s for %r %r." %
-						   (self.name, query, params))
+		self.log.log_error("Giving up querying %s for %r %r." % (self.name, query, params))
 		raise MySQLdb.OperationalError(2006)
 
 	def execute(self, query, params):
@@ -92,8 +88,7 @@ class LaggyMySQLdb(object):
 		"""
 		lasterr = None
 		for i in range(int(self.config["main"]["query_attempts"])):
-			self.log.log_debug("Executing db %s with %r %r attempt %d" %
-							   (self.name, query, params, i), 8)
+			self.log.log_debug("Executing db %s with %r %r attempt %d" % (self.name, query, params, i), 8)
 			try:
 				self.cursor.execute(query, params)
 				self.db.commit()
@@ -101,21 +96,16 @@ class LaggyMySQLdb(object):
 			except MySQLdb.OperationalError as error:
 				lasterr = error
 				if error.args[0] == 2006:  # MySQL server has gone away
-					self.log.log_warning(("MySQL server %s has gone away during " +
-										  "execute %r %r attempt %d") %
-										 (self.name, query, params, i))
+					self.log.log_warning(("MySQL server %s has gone away during execute %r %r attempt %d") % (self.name, query, params, i))
 					self.reconnect()
 					continue
 				if error.args[0] == 1205:  # Lock wait timeout exceeded
 					self.log.log_warning("Ran into a lock timeout on server %s during execute %r %r attempt %d" % (self.name, query, params, i))
 					self.reconnect()
 					continue
-				self.log.log_err("Recieved MySQLdb.OperationalError while" +
-								 " executing %r %r on %s: %r" %
-								 (query, params, self.name, error))
+				self.log.log_err("Received MySQLdb.OperationalError while executing %r %r on %s: %r" % (query, params, self.name, error))
 				raise  # no clue what to do
-		self.log.log_error("Giving up executing %r %r on %s." %
-						   (query, params, self.name))
+		self.log.log_error("Giving up executing %r %r on %s." % (query, params, self.name))
 		raise lasterr
 
 
@@ -138,15 +128,13 @@ class backend(object):
 		table_name = self.groups[group]["table_prefix"] + time.strftime(self.groups[group]["table_strftime"], now)
 		if table_name == self.current_tables.get(group):
 			return
-		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name,
-													   self.groups[group]["create_table"])
+		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name, self.groups[group]["create_table"])
 
 		self.db.execute(query, ())
 		self.current_tables[group] = table_name
 
 	def lookup_userid(self, group, addr):
-		query = "%s;" % (self.config["main"]["userid_query"]
-							 .replace("?", "%s"))
+		query = "%s;" % (self.config["main"]["userid_query"].replace("?", "%s"))
 		parammap = dict(group=group, address=addr)
 		params = self.config["main"]["userid_query_params"]
 		params = list(map(parammap.__getitem__, params))
@@ -167,8 +155,7 @@ class backend(object):
 	def account(self, group, addr, value):
 		self.create_current_table(group)
 		query = "INSERT INTO %s %s;" % (self.current_tables[group], self.groups[group]["insert"].replace("?", "%s"))
-		parammap = dict(pid=os.getpid(), hostname=socket.gethostname(),
-						address=addr, value=value)
+		parammap = dict(pid=os.getpid(), hostname=socket.gethostname(), address=addr, value=value)
 		params = self.groups[group]["insert_params"]
 		if "userid" in params:
 			parammap["userid"] = self.lookup_userid(group, addr)
@@ -190,30 +177,24 @@ class plugin(object):
 		self.formatter = AddressFormatter(config)
 		self.backends = []
 
-		employ_userid = any("userid" in groupconf["insert_params"]
-							for groupconf in config["groups"].values())
+		employ_userid = any("userid" in groupconf["insert_params"] for groupconf in config["groups"].values())
 		if "userid_query" not in config["main"] and employ_userid:
-			log.log_err("Some inserts statements employ userid, but the main " +
-						"section is lacking a userid_query.")
+			log.log_err("Some inserts statements employ userid, but the main section is lacking a userid_query.")
 			raise ValueError("userid_query missing in main config section")
 		elif "userid_query" in config["main"] and not employ_userid:
-			log.log_warning("The main config sections has an unused " +
-							"userid_query.")
+			log.log_warning("The main config sections has an unused userid_query.")
 
 		for dbname in config["databases"]:
 			if dbname.startswith(TRAFFIC_DB_START):
 				trafficdb = LaggyMySQLdb(config, dbname, log)
-				log.log_debug("Found database %s for traffic information" %
-							  dbname, 3)
+				log.log_debug("Found database %s for traffic information" % dbname, 3)
 				useriddbname = "userid_%s" % dbname[len(TRAFFIC_DB_START):]
 				useriddb = None
 				if employ_userid and useriddbname in config["databases"]:
 					useriddb = LaggyMySQLdb(config, useriddbname, log)
 					log.log_debug("Found database for userid information")
 				elif config["main"].has_key("userid_query"):
-					log.log_notice(("Not using any userid database since no " +
-									"database definition %s could be found") %
-								   useriddbname)
+					log.log_notice(("Not using any userid database since no database definition %s could be found") % useriddbname)
 				else:
 					log.log_debug("Not using any userid database", 3)
 
@@ -223,8 +204,7 @@ class plugin(object):
 		while True:
 			qsize = queue.qsize()
 			if qsize > self.queue_size_warn:
-				self.log.log_warning("queue contains at least %d entries" %
-									 qsize)
+				self.log.log_warning("queue contains at least %d entries" % qsize)
 			entry = queue.get()
 			if entry[0] == "terminate":
 				return
@@ -235,15 +215,13 @@ class plugin(object):
 				timestamp, group, addr, value = entry[1:]
 				queue_age = time.time() - timestamp
 				if queue_age > self.queue_age_warn:
-					self.log.log_warning("processing of queue lacks behind " +
-										 "for at least %d seconds" % queue_age)
+					self.log.log_warning("processing of queue lacks behind for at least %d seconds" % queue_age)
 				for backend in self.backends:
 					backend.account(group, self.formatter(group, addr), value)
 			elif entry[0] == "loss":
 				timestamp, group, count = entry[2:]
 				age = time.time() - timestamp
-				self.log.log_warning(("collector missed at least %d packets " +
-									  "in group %d observed %ds ago") % (count, group, age))
+				self.log.log_warning(("collector missed at least %d packets in group %d observed %ds ago") % (count, group, age))
 			elif entry[0] == "end_write":
 				for backend in self.backends:
 					backend.end_write()

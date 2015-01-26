@@ -62,8 +62,7 @@ class LaggyMySQLdb(object):
 		@raises MySQLdb.OperationalError
 		"""
 		for i in range(int(self.config["main"]["query_attempts"])):
-			self.log.log_debug("Querying db %s with %r %r attempt %d" %
-							   (self.name, query, params, i), 8)
+			self.log.log_debug("Querying db %s with %r %r attempt %d" % (self.name, query, params, i), 8)
 			try:
 				self.cursor.execute(query, params)
 				return self.cursor.fetchall()
@@ -129,7 +128,8 @@ class backend(object):
 			return
 		query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s  AND table_name = %s"
 		res = self.db.query(query, (self.db.dbconf["db"], table_name))
-		if res[0][0] == 0:
+		self.db.log.log_debug("Found %s tables present in database" % res)
+		if res and res[0] == 0:
 			query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name, self.groups[group]["create_table"])
 			self.db.execute(query, ())
 		self.current_tables[group] = table_name

@@ -36,6 +36,8 @@ class LaggyMySQLdb(object):
 			self.cursor.close()
 			self.cursor = None
 		if self.db:
+			self.log.log_debug("Committing all entries to db %s." % self.name, 5)
+			self.db.commit()
 			self.log.log_debug("Closing connection to db %s." % self.name, 5)
 			self.db.close()
 			self.db = None
@@ -90,7 +92,6 @@ class LaggyMySQLdb(object):
 			self.log.log_debug("Executing db %s with %r %r attempt %d" % (self.name, query, params, i), 8)
 			try:
 				self.cursor.execute(query, params)
-				self.db.commit()
 				return
 			except MySQLdb.OperationalError as error:
 				lasterr = error

@@ -116,6 +116,7 @@ class backend(object):
 		self.groups = dict((int(key), value) for key, value in config["groups"].items())
 		self.current_tables = {}
 		self.useriddb = useriddb
+		self.userid_cache = None
 		if all("userid" not in groupconf["insert_params"] for groupconf in self.groups.values()):
 			self.useriddb = None
 
@@ -136,7 +137,7 @@ class backend(object):
 			self.db.execute(query, ())
 		self.current_tables[group] = table_name
 
-	def lookup_userid(self, group, addr):
+	def __lookup_userid_byquery(self, group, addr):
 		query = "%s;" % (self.config["main"]["userid_query"].replace("?", "%s"))
 		parammap = dict(group=group, address=addr)
 		params = self.config["main"]["userid_query_params"]
@@ -149,6 +150,27 @@ class backend(object):
 			return rows[0]["userid"]
 		except IndexError:  # no rows returned
 			return None  # results in a NULL value
+
+	def __lookup_userid_bycache(self, group, addr):
+		if self.userid_cache is None:
+			query = self.config["main"]["userid_query_cache"]
+			if self.useriddb is not None:
+				rows = self.useriddb.query(query, None)
+			else:
+				rows = self.db.query(query, None)
+			self.userid_cache = dict((row["address"], row["userid"]) for row in rows)
+		else:
+			if addr in self.userid_cache:
+				return self.userid_cache[addr]
+			else:
+				return None
+
+	def lookup_userid(self, group, addr):
+		if "userid_query_cache" in self.config["main"]:
+			return self.__lookup_userid_bycache(group, addr)
+		else:
+			return self.__lookup_userid_byquery(group, addr)
+
 
 	def start_write(self):
 		self.db.reconnect()
@@ -169,6 +191,7 @@ class backend(object):
 	def end_write(self):
 		if self.useriddb is not None:
 			self.useriddb.close()
+		self.userid_cache = None
 		self.db.close()
 
 

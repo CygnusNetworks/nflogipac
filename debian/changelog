@@ -1,3 +1,11 @@
+nflogipac (0.50) wheezy; urgency=low
+
+  * Add cache userid query in MySQL plugin example
+  * Fix error on loss in MySQL plugin example
+  * Improve MySQL performance by late commits
+
+ -- Dr. Torge Szczepanek <debian@cygnusnetworks.de>  Mon, 26 Jan 2015 14:07:00 +0100
+
 nflogipac (0.40) wheezy; urgency=low
 
   * Include bugfix for 1205 Operational error

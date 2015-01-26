@@ -4,7 +4,7 @@ Build-Depends: debhelper (>= 8),
  libboost-dev (>= 1.40),
  libboost-thread-dev (>= 1.40),
  python
-Maintainer: Helmut Grohne <h.grohne@cygnusnetworks.de>
+Maintainer: Cygnus Networks GmbH <debian@cygnusnetworks.de>
 Standards-Version: 3.9.4
 Section: net
 Priority: extra

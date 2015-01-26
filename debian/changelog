@@ -2,14 +2,14 @@ nflogipac (0.40) wheezy; urgency=low
 
   * Include bugfix for 1205 Operational error
 
- -- Dr. Torge Szczepanek <t.szczepanek@cygnusnetworks.de>  Mon, 04 Nov 2013 20:26:44 +0100
+ -- Dr. Torge Szczepanek <debian@cygnusnetworks.de>  Mon, 04 Nov 2013 20:26:44 +0100
 
 nflogipac (0.30+nmu1) wheezy; urgency=low
 
   * Non-maintainer upload.
   * Compile for wheezy
 
- -- Dr. Torge Szczepanek <t.szczepanek@cygnusnetworks.de>  Thu, 13 Jun 2013 09:45:31 +0200
+ -- Dr. Torge Szczepanek <debian@cygnusnetworks.de>  Thu, 13 Jun 2013 09:45:31 +0200
 
 nflogipac (0.30) unstable; urgency=low
 
@@ -42,7 +42,7 @@ nflogipac (0.2-1) stable; urgency=low
 
   * First beta release
 
- -- Torge Szczepanek <info@cygnusnetworks.de>  Fri, 17 Jun 2011 12:44:10 +0200
+ -- Torge Szczepanek <debian@cygnusnetworks.de>  Fri, 17 Jun 2011 12:44:10 +0200
 
 nflogipac (0.1-1) UNRELEASED; urgency=low
 

@@ -204,7 +204,7 @@ class plugin(object):
 				for backend in self.backends:
 					backend.account(group, self.formatter(group, addr), value)
 			elif entry[0] == "loss":
-				timestamp, group, count = entry[2:]
+				timestamp, group, count = entry[1:]
 				age = time.time() - timestamp
 				self.log.log_warning(("collector missed at least %d packets " +
 									  "in group %d observed %ds ago") % (count, group, age))

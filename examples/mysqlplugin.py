@@ -113,8 +113,7 @@ class backend(object):
 	def __init__(self, config, trafficdb, useriddb=None):
 		self.config = config
 		self.db = trafficdb
-		self.groups = dict((int(key), value) for key, value
-						   in config["groups"].items())
+		self.groups = dict((int(key), value) for key, value in config["groups"].items())
 		self.current_tables = {}
 		self.useriddb = useriddb
 		if all("userid" not in groupconf["insert_params"] for groupconf in self.groups.values()):
@@ -128,9 +127,11 @@ class backend(object):
 		table_name = self.groups[group]["table_prefix"] + time.strftime(self.groups[group]["table_strftime"], now)
 		if table_name == self.current_tables.get(group):
 			return
-		query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name, self.groups[group]["create_table"])
-
-		self.db.execute(query, ())
+		query = "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = %s  AND table_name = %s"
+		res = self.db.query(query, (self.db.dbconf["db"], table_name))
+		if res[0][0] == 0:
+			query = "CREATE TABLE IF NOT EXISTS %s %s;" % (table_name, self.groups[group]["create_table"])
+			self.db.execute(query, ())
 		self.current_tables[group] = table_name
 
 	def lookup_userid(self, group, addr):

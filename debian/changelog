@@ -1,3 +1,11 @@
+nflogipac (0.51+cygnus1) jessie; urgency=low
+
+  * Fix compiling under newer gcc
+  * Fix version string
+  * Version bump
+
+ -- Dr. Torge Szczepanek <debian@cygnusnetworks.de>  Mon, 26 Jan 2015 14:07:00 +0100
+
 nflogipac (0.50) wheezy; urgency=low
 
   * Add cache userid query in MySQL plugin example
